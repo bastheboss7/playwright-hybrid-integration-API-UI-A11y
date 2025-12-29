@@ -1,4 +1,6 @@
-![Playwright Tests](https://github.com/bastheboss7/Playwright_WebUI/actions/workflows/main.yml/badge.svg)
+# Playwright WebUI Automation Framework
+
+![Playwright Tests](https://github.com/bastheboss7/Playwright_WebUI/actions/workflows/playwright.yml/badge.svg)
 ![Playwright Version](https://img.shields.io/badge/playwright-v1.45.0-blue)
 
 # Evri Playwright Test Automation Framework
