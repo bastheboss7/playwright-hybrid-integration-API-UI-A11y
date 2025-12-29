@@ -1,0 +1,233 @@
+name: Evri Playwright Tests
+
+# Workflow triggers - when this pipeline runs
+on:
+  push:
+    branches: [ main, develop ]  # Run on push to main or develop
+  pull_request:
+    branches: [ main, develop ]  # Run on PRs targeting main or develop
+  schedule:
+    - cron: 0 2 * * *  # Run daily at 2 AM UTC for regression testing
+  workflow_dispatch:  # Allow manual trigger from Actions UI
+    inputs:
+      browser:
+        description: 'Browser to test'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - chromium
+          - firefox
+          - webkit
+
+# Cancel in-progress runs when new commits pushed to same branch
+# Saves runner time and costs
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Main test job - runs full test suite across multiple browsers
+  test:
+    timeout-minutes: 60  # Fail if tests run longer than 1 hour
+    runs-on: ubuntu-latest
+    environment: production  # Use production GitHub environment for secrets
+    strategy:
+      fail-fast: false  # Continue testing other browsers even if one fails
+      matrix:
+        browser: [chromium, firefox, webkit]  # Test on all desktop browsers
+    steps:
+      # Step 1: Check out repository code
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      # Step 2: Set up Node.js with npm caching
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'  # Cache npm packages for faster installs
+      
+      # Step 3: Cache Playwright browser binaries to speed up subsequent runs
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+      
+      # Step 4: Install Node.js dependencies from package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      
+      # Step 5: Install Playwright browser for this matrix iteration
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps ${{ matrix.browser }}
+      
+      # Step 6: Run Playwright tests with retry logic for flaky test resilience
+      - name: Run Playwright tests
+        uses: nick-invision/retry@v2
+        with:
+          max_attempts: 2  # Retry once if tests fail
+          timeout_minutes: 60
+          command: npx playwright test --project=${{ matrix.browser }}
+        env:
+          TEST_ENV: production
+          BASE_URL_PRODUCTION: ${{ secrets.BASE_URL_PRODUCTION || 'https://www.evri.com' }}
+      
+      # Step 7: Publish test results to PR with pass/fail annotations
+      - name: Publish Test Results
+        uses: dorny/test-reporter@v1
+        if: always()  # Run even if tests fail
+        with:
+          name: Test Results - ${{ matrix.browser }}
+          path: test-results/results.json
+          reporter: mocha-json
+          fail-on-error: false  # Don't fail workflow if reporter fails
+      
+      # Step 8-10: Upload artifacts for debugging and audit trail
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results-${{ matrix.browser }}
+          path: test-results/
+          retention-days: 30  # Keep for 1 month
+      
+      - name: Upload Playwright HTML report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report-${{ matrix.browser }}
+          path: playwright-report/
+          retention-days: 30
+      
+      - name: Upload traces
+        uses: actions/upload-artifact@v4
+        if: failure()  # Only upload traces when tests fail
+        with:
+          name: traces-${{ matrix.browser }}
+          path: test-results/**/trace.zip
+          retention-days: 7  # Keep for 1 week
+      
+      # Step 11: Send email notification on test failure
+      - name: Send email notification on failure
+        if: failure()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 587
+          username: ${{ secrets.EMAIL_USERNAME }}  # Gmail address
+          password: ${{ secrets.EMAIL_PASSWORD }}  # Gmail App Password
+          subject: "Playwright Test Failure - ${{ matrix.browser }} - ${{ github.repository }}"
+          to: bastheboss7@gmail.com
+          from: GitHub Actions
+          body: |
+            Test run failed for ${{ matrix.browser }}
+            
+            Repository: ${{ github.repository }}
+            Branch: ${{ github.ref_name }}
+            Commit: ${{ github.sha }}
+            Actor: ${{ github.actor }}
+            
+            View details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+  # Smoke test job - quick validation of critical paths (runs in parallel with main tests)
+  smoke-tests:
+    timeout-minutes: 10  # Smoke tests should be fast (max 10 minutes)
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      # Only install chromium for smoke tests (faster setup)
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps chromium
+      
+      # Run only smoke test spec for quick validation
+      - name: Run smoke tests
+        uses: nick-invision/retry@v2
+        with:
+          max_attempts: 2
+          timeout_minutes: 10
+          command: npx playwright test features/evri-smoke.spec.ts --project=chromium
+        env:
+          TEST_ENV: production
+          BASE_URL_PRODUCTION: ${{ secrets.BASE_URL_PRODUCTION || 'https://www.evri.com' }}
+      
+      - name: Publish Smoke Test Results
+        uses: dorny/test-reporter@v1
+        if: always()
+        with:
+          name: Smoke Test Results
+          path: test-results/results.json
+          reporter: mocha-json
+          fail-on-error: false
+      
+      - name: Upload smoke test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: smoke-test-results
+          path: playwright-report/
+          retention-days: 7  # Shorter retention for smoke tests
+      
+      - name: Send email notification on smoke test failure
+        if: failure()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 587
+          username: ${{ secrets.EMAIL_USERNAME }}
+          password: ${{ secrets.EMAIL_PASSWORD }}
+          subject: "Smoke Test Failure - ${{ github.repository }}"
+          to: bastheboss7@gmail.com
+          from: GitHub Actions
+          body: |
+            Smoke test run failed
+            
+            Repository: ${{ github.repository }}
+            Branch: ${{ github.ref_name }}
+            Commit: ${{ github.sha }}
+            Actor: ${{ github.actor }}
+            
+            View details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+  # Summary job - aggregates results from all test jobs
+  test-summary:
+    name: Test Summary
+    needs: [test, smoke-tests]  # Wait for both jobs to complete
+    if: always()  # Run even if test jobs fail
+    runs-on: ubuntu-latest
+    steps:
+      # Generate markdown summary visible in GitHub Actions UI
+      - name: Generate Test Summary
+        run: |
+          echo "# Test Execution Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Repository:** ${{ github.repository }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Actor:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Job Status" >> $GITHUB_STEP_SUMMARY
+          echo "- Full Test Suite: ${{ needs.test.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Smoke Tests: ${{ needs.smoke-tests.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "[View Full Run Details](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
