@@ -81,8 +81,8 @@ jobs:
         if: always()  # Run even if tests fail
         with:
           name: Test Results - ${{ matrix.browser }}
-          path: test-results/results.json
-          reporter: playwright
+          path: test-results/results.xml
+          reporter: junit
           fail-on-error: false  # Don't fail workflow if reporter fails
       
       # Step 8-10: Upload artifacts for debugging and audit trail
@@ -154,8 +154,8 @@ jobs:
         if: always()
         with:
           name: Smoke Test Results
-          path: test-results/results.json
-          reporter: playwright
+          path: test-results/results.xml
+          reporter: junit
           fail-on-error: false
       
       - name: Upload smoke test results

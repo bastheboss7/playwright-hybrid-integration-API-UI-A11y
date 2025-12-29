@@ -46,7 +46,8 @@ export default defineConfig({
   reporter: [
     ['html', { outputFolder: REPORT_FOLDER }],
     ['list'],
-    ['json', { outputFile: 'test-results/results.json' }]
+    ['json', { outputFile: 'test-results/results.json' }],
+    ['junit', { outputFile: 'test-results/results.xml' }]
   ],
   use: {
     baseURL: BASE_URL,
