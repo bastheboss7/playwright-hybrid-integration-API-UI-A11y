@@ -6,24 +6,7 @@ This document outlines the required secrets for the Playwright test automation C
 
 Configure these secrets in: **Settings → Secrets and variables → Actions → Repository secrets**
 
-### 1. Email Notification Secrets
-
-**EMAIL_USERNAME**
-- **Purpose**: SMTP authentication username for sending email notifications
-- **Value**: Your Gmail address (e.g., `your-email@gmail.com`)
-- **Required**: Yes (for failure notifications)
-
-**EMAIL_PASSWORD**
-- **Purpose**: SMTP authentication password or App Password
-- **Value**: Gmail App Password (not your regular password)
-- **How to generate**: 
-  1. Enable 2FA on your Google account
-  2. Go to Google Account → Security → 2-Step Verification → App passwords
-  3. Generate app password for "Mail" application
-  4. Use the 16-character password generated
-- **Required**: Yes (for failure notifications)
-
-### 2. Environment Configuration Secrets
+### 1. Environment Configuration Secrets
 
 **BASE_URL_PRODUCTION** *(Optional)*
 - **Purpose**: Production environment URL override
