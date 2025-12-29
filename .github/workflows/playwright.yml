@@ -82,7 +82,7 @@ jobs:
         with:
           name: Test Results - ${{ matrix.browser }}
           path: test-results/results.xml
-          reporter: xunit
+          reporter: java-junit
           fail-on-error: false  # Don't fail workflow if reporter fails
       
       # Step 8-10: Upload artifacts for debugging and audit trail
@@ -155,7 +155,7 @@ jobs:
         with:
           name: Smoke Test Results
           path: test-results/results.xml
-          reporter: xunit
+          reporter: java-junit
           fail-on-error: false
       
       - name: Upload smoke test results
