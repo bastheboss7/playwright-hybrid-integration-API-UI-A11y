@@ -1,9 +1,12 @@
-# Playwright WebUI Automation Framework
+# 🎭 Playwright WebUI Automation Framework
+### High-Performance Cross-Browser Testing Ecosystem
 
-![Playwright Tests](https://github.com/bastheboss7/Playwright_WebUI/actions/workflows/playwright.yml/badge.svg)
-![Playwright Version](https://img.shields.io/badge/playwright-v1.45.0-blue)
-
-# Evri Playwright Test Automation Framework
+![Playwright](https://img.shields.io/badge/Playwright-2EAD33?style=for-the-badge&logo=playwright&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
+![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)
+![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-2088FF?style=for-the-badge&logo=github-actions&logoColor=white)
+![Tests](https://img.shields.io/badge/Tests-Passing-brightgreen?style=for-the-badge)
+---
 
 ## Overview
 This is an enterprise-grade, scalable UI/Functional test automation framework built with [Playwright Test Runner](https://playwright.dev/) and TypeScript. The framework is designed for testing Evri's parcel delivery services with focus on reliability, maintainability, and comprehensive test coverage.
@@ -15,6 +18,8 @@ This is an enterprise-grade, scalable UI/Functional test automation framework bu
 - **Multi-browser Support**: Chrome, Firefox, Safari, and mobile devices
 - **Comprehensive Reporting**: HTML reports with trace, video, and screenshot capture
 - **Scalable Architecture**: Organized test structure for easy expansion
+
+---
 
 ## Project Structure
 ```
