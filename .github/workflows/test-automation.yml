@@ -232,9 +232,10 @@ jobs:
   accessibility-audit:
     name: Accessibility Audit (WCAG 2.1 AA)
     runs-on: ubuntu-latest
-    # Only run A11y tests during nightly or when explicitly requested
+    # Run A11y tests during nightly, PRs (smoke), or when explicitly requested
     if: |
       github.event_name == 'schedule' ||
+      github.event_name == 'pull_request' ||
       (github.event_name == 'workflow_dispatch' && 
        (github.event.inputs.test-scope == 'all' || github.event.inputs.test-scope == 'regression'))
     timeout-minutes: 20

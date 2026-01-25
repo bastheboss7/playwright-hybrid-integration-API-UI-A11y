@@ -24,7 +24,7 @@ import { test } from '../../fixtures';
  * ============================================================================
  */
 
-test.describe('@api API Tests: Product Catalog Integration', () => {
+test.describe('@api @smoke API Tests: Product Catalog Integration', () => {
   /**
    * SCENARIO 1: API HYBRID INTEGRITY TEST
    * 

@@ -58,7 +58,7 @@ test.describe('@a11y Accessibility Tests: WCAG 2.1 AA Compliance', () => {
    * 
    * RISK LEVEL: 🔴 HIGH (5/10) - Regulatory impact, Low probability
    */
-  test('@a11y @regression Accessibility Audit: Homepage - WCAG 2.1 AA', async ({
+  test('@a11y @smoke Accessibility Audit: Homepage - WCAG 2.1 AA', async ({
     page,
   }, testInfo) => {
     console.log('♿ Accessibility Test: Homepage A11y Audit');
