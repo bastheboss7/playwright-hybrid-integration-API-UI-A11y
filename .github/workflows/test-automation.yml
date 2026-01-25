@@ -10,8 +10,7 @@ name: Test Automation Pipeline
 on:
   # Trigger 1: Pull requests (Tier 1 smoke tests)
   pull_request:
-    branches:
-      - main
+    branches: [ main, develop ]  # Added develop for shift-left validation
     paths:
       - 'features/**'
       - 'playwright.config.ts'
@@ -21,8 +20,7 @@ on:
 
   # Trigger 2: Push to main (Smoke tests verification)
   push:
-    branches:
-      - main
+    branches: [ main, develop ]  # Added develop for shift-left validation
     paths:
       - 'features/**'
       - 'playwright.config.ts'
