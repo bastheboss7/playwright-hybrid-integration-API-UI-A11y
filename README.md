@@ -1,4 +1,12 @@
-# Playwright Test Automation Framework
+# 🎭 Playwright WebUI Automation Framework
+### High-Performance Cross-Browser Testing Ecosystem
+
+![Playwright](https://img.shields.io/badge/Playwright-2EAD33?style=for-the-badge&logo=playwright&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
+![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)
+![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-2088FF?style=for-the-badge&logo=github-actions&logoColor=white)
+![Tests](https://img.shields.io/badge/Tests-Passing-brightgreen?style=for-the-badge)
+---
 
 Enterprise-grade test automation framework demonstrating **strategic governance, hybrid integration (API+UI+A11y), and scalable architecture** for demoblaze.com.
 
