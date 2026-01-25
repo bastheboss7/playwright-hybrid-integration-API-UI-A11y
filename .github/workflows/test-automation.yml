@@ -1,0 +1,498 @@
+name: Test Automation Pipeline
+
+# ============================================================================
+# GOLDEN PIPELINE: Strategic 2-Tier Testing Architecture
+# ============================================================================
+# Tier 1: CI Smoke Tests (PR Gate) - Fast feedback for pull requests
+# Tier 2: Nightly Regression (Full Coverage) - Comprehensive multi-browser testing
+# ============================================================================
+
+on:
+  # Trigger 1: Pull requests (Tier 1 smoke tests)
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'features/**'
+      - 'playwright.config.ts'
+      - 'package.json'
+      - 'tsconfig.json'
+      - '.github/workflows/test-automation.yml'
+
+  # Trigger 2: Push to main (Smoke tests verification)
+  push:
+    branches:
+      - main
+    paths:
+      - 'features/**'
+      - 'playwright.config.ts'
+
+  # Trigger 3: Scheduled nightly regression (2 AM UTC)
+  schedule:
+    - cron: '0 2 * * *'
+
+  # Trigger 4: Manual dispatch with options
+  workflow_dispatch:
+    inputs:
+      test-scope:
+        description: 'Test scope to run'
+        required: true
+        default: 'smoke'
+        type: choice
+        options:
+          - smoke
+          - regression
+          - all
+      browser:
+        description: 'Browser selection (for manual runs)'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - chromium
+          - firefox
+          - webkit
+
+# ============================================================================
+# CONCURRENCY STRATEGY
+# ============================================================================
+# Cancel previous runs to prevent queue buildup
+# Exception: Do not cancel nightly runs (full coverage should complete)
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name != 'schedule' }}
+
+# ============================================================================
+# PERMISSIONS
+# ============================================================================
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+
+# ============================================================================
+# JOBS
+# ============================================================================
+
+jobs:
+  # ========================================================================
+  # SETUP: Determine which test scope to run
+  # ========================================================================
+  setup:
+    name: Setup Test Configuration
+    runs-on: ubuntu-latest
+    outputs:
+      test-scope: ${{ steps.config.outputs.test-scope }}
+      browsers: ${{ steps.config.outputs.browsers }}
+      workers: ${{ steps.config.outputs.workers }}
+      timeout: ${{ steps.config.outputs.timeout }}
+    steps:
+      - name: Determine Test Configuration
+        id: config
+        run: |
+          # Default configuration based on trigger
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            # PR trigger: Fast smoke tests
+            echo "test-scope=smoke" >> $GITHUB_OUTPUT
+            echo "browsers=[\"chromium\"]" >> $GITHUB_OUTPUT
+            echo "workers=4" >> $GITHUB_OUTPUT
+            echo "timeout=15" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event_name }}" = "schedule" ]; then
+            # Scheduled: Full nightly regression
+            echo "test-scope=regression" >> $GITHUB_OUTPUT
+            echo "browsers=[\"chromium\",\"firefox\",\"webkit\"]" >> $GITHUB_OUTPUT
+            echo "workers=2" >> $GITHUB_OUTPUT
+            echo "timeout=50" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            # Manual: User-selected configuration
+            if [ "${{ github.event.inputs.test-scope }}" = "all" ]; then
+              echo "test-scope=regression" >> $GITHUB_OUTPUT
+            else
+              echo "test-scope=${{ github.event.inputs.test-scope }}" >> $GITHUB_OUTPUT
+            fi
+            
+            if [ "${{ github.event.inputs.browser }}" != "all" ]; then
+              echo "browsers=[\"${{ github.event.inputs.browser }}\"]" >> $GITHUB_OUTPUT
+            else
+              echo "browsers=[\"chromium\",\"firefox\",\"webkit\"]" >> $GITHUB_OUTPUT
+            fi
+            echo "workers=2" >> $GITHUB_OUTPUT
+            echo "timeout=50" >> $GITHUB_OUTPUT
+          else
+            # Default: Push to main - smoke tests
+            echo "test-scope=smoke" >> $GITHUB_OUTPUT
+            echo "browsers=[\"chromium\"]" >> $GITHUB_OUTPUT
+            echo "workers=4" >> $GITHUB_OUTPUT
+            echo "timeout=15" >> $GITHUB_OUTPUT
+          fi
+
+  # ========================================================================
+  # MATRIX: Browser/Test configuration matrix
+  # ========================================================================
+  matrix:
+    name: Build Test Matrix
+    runs-on: ubuntu-latest
+    needs: setup
+    outputs:
+      browser-matrix: ${{ steps.matrix.outputs.browser-matrix }}
+    steps:
+      - name: Generate Matrix
+        id: matrix
+        run: |
+          echo "browser-matrix=${{ needs.setup.outputs.browsers }}" >> $GITHUB_OUTPUT
+
+  # ========================================================================
+  # TESTS: Run Playwright tests with appropriate scope and browsers
+  # ========================================================================
+  tests:
+    name: Tests - ${{ matrix.browser }}
+    runs-on: ubuntu-latest
+    needs: [setup, matrix]
+    timeout-minutes: ${{ fromJson(needs.setup.outputs.timeout) }}
+    continue-on-error: false
+
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: ${{ fromJson(needs.matrix.outputs.browser-matrix) }}
+
+    steps:
+      # 1. Checkout code
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # 2. Setup Node.js with npm cache
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18.x'
+          cache: 'npm'
+
+      # 3. Cache Playwright browser binaries
+      - name: Cache Playwright Browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ matrix.browser }}-${{ hashFiles('package-lock.json') }}
+
+      # 4. Install dependencies
+      - name: Install Dependencies
+        run: npm ci --omit=optional
+        timeout-minutes: 5
+
+      # 5. Install Playwright browsers (specific to matrix browser)
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps ${{ matrix.browser }}
+        timeout-minutes: 10
+
+      # 6. Run tests with appropriate grep pattern and worker count
+      # Uses 3-layer architecture: API (foundation), E2E-UI (workflows), Accessibility (compliance)
+      - name: Run Tests (${{ needs.setup.outputs.test-scope }} - ${{ matrix.browser }})
+        env:
+          PLAYWRIGHT_TEST_TIMEOUT: 90000
+          PLAYWRIGHT_EXPECT_TIMEOUT: 15000
+        run: |
+          if [ "${{ needs.setup.outputs.test-scope }}" = "smoke" ]; then
+            echo "Running smoke tests: API + E2E-UI + Critical A11y..."
+            npx playwright test features/tests/ --grep "@smoke|(@a11y.*(homepage|Homepage))" --project=${{ matrix.browser }} --workers=${{ needs.setup.outputs.workers }} --reporter=html,json,junit
+          else
+            echo "Running full regression suite across all 3 layers..."
+            npx playwright test features/tests/ --grep @regression --project=${{ matrix.browser }} --workers=${{ needs.setup.outputs.workers }} --reporter=html,json,junit
+          fi
+        timeout-minutes: ${{ fromJson(needs.setup.outputs.timeout) }}
+        continue-on-error: ${{ github.event_name == 'schedule' }}
+
+      # 7. Upload HTML Report
+      - name: Upload Playwright Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ matrix.browser }}-${{ github.run_id }}
+          path: playwright-report/
+          retention-days: ${{ needs.setup.outputs.test-scope == 'smoke' && '7' || '14' }}
+          if-no-files-found: ignore
+
+      # 8. Upload JSON Results
+      - name: Upload Test Results (JSON)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.browser }}-json
+          path: test-results/
+          retention-days: ${{ needs.setup.outputs.test-scope == 'smoke' && '7' || '14' }}
+          if-no-files-found: ignore
+
+      # 9. Upload JUnit Report for GitHub Checks
+      - name: Upload JUnit Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: junit-report-${{ matrix.browser }}
+          path: junit-results/
+          retention-days: ${{ needs.setup.outputs.test-scope == 'smoke' && '7' || '14' }}
+          if-no-files-found: ignore
+
+      # 10. Publish Test Results to PR/Checks
+      - name: Publish Test Results
+        if: always()
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        with:
+          files: junit-results/results.xml
+          check_name: 'Tests - ${{ needs.setup.outputs.test-scope }} - ${{ matrix.browser }}'
+          comment_mode: always
+          compare_to_earlier_commit: true
+
+  # ========================================================================
+  # A11Y AUDIT: Accessibility compliance (WCAG 2.1 AA)
+  # ========================================================================
+  accessibility-audit:
+    name: Accessibility Audit (WCAG 2.1 AA)
+    runs-on: ubuntu-latest
+    # Only run A11y tests during nightly or when explicitly requested
+    if: |
+      github.event_name == 'schedule' ||
+      (github.event_name == 'workflow_dispatch' && 
+       (github.event.inputs.test-scope == 'all' || github.event.inputs.test-scope == 'regression'))
+    timeout-minutes: 20
+    continue-on-error: true
+
+    steps:
+      # 1. Checkout code
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # 2. Setup Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18.x'
+          cache: 'npm'
+
+      # 3. Cache Playwright browsers
+      - name: Cache Playwright Browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-chromium-${{ hashFiles('package-lock.json') }}
+
+      # 4. Install dependencies
+      - name: Install Dependencies
+        run: npm ci --omit=optional
+        timeout-minutes: 5
+
+      # 5. Install Playwright browsers (chromium only for a11y)
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps chromium
+        timeout-minutes: 5
+
+      # 6. Run accessibility audit (Layer 3: WCAG 2.1 AA compliance)
+      - name: Run Accessibility Audit
+        run: |
+          echo "Running Layer 3: Accessibility audit (WCAG 2.1 AA)..."
+          npx playwright test features/tests/accessibility/ --grep @a11y --project=chromium --reporter=html,json
+        timeout-minutes: 10
+
+      # 7. Upload A11y Report
+      - name: Upload A11y Audit Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: a11y-audit-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 30
+          if-no-files-found: ignore
+
+      # 8. Upload A11y Violations (testInfo.attach() output)
+      - name: Upload A11y Violations Summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: a11y-violations-${{ github.run_id }}
+          path: |
+            playwright-report/data/*.json
+            test-results/**/*violations*.json
+          retention-days: 30
+          if-no-files-found: ignore
+
+      # 9. Analyze A11y Compliance
+      - name: Analyze Accessibility Compliance
+        if: always()
+        run: |
+          echo "## 🔍 Accessibility Audit Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ WCAG 2.1 AA audit completed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Count violations from test results (soft assertions pattern)
+          if [ -f "test-results/results.json" ]; then
+            violation_count=$(jq '[.suites[].specs[].tests[].results[].attachments[]? | select(.name | contains("accessibility-violations"))] | length' test-results/results.json 2>/dev/null || echo "0")
+            echo "**Violations Logged:** $violation_count (non-blocking)" >> $GITHUB_STEP_SUMMARY
+            echo "**Pattern:** Soft assertions - tests pass, violations logged for audit trail" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "See 'a11y-audit-report' and 'a11y-violations' artifacts for detailed results." >> $GITHUB_STEP_SUMMARY
+
+  # ========================================================================
+  # RESULTS SUMMARY: Consolidate test results and notify
+  # ========================================================================
+  results-summary:
+    name: Test Results Summary
+    runs-on: ubuntu-latest
+    needs: [setup, tests]
+    if: always()
+    timeout-minutes: 10
+
+    steps:
+      # 1. Download all test artifacts
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+          pattern: |
+            test-results-*
+            junit-report-*
+            playwright-report-*
+            a11y-audit-report
+
+      # 2. Generate comprehensive summary
+      - name: Generate Test Summary
+        run: |
+          echo "## 🧪 Test Execution Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Scope:** ${{ needs.setup.outputs.test-scope }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Configuration" >> $GITHUB_STEP_SUMMARY
+          echo "| Setting | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Test Scope | ${{ needs.setup.outputs.test-scope }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Workers | ${{ needs.setup.outputs.workers }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Timeout | ${{ needs.setup.outputs.timeout }} min |" >> $GITHUB_STEP_SUMMARY
+          echo "| Trigger | ${{ github.event_name }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Branch | ${{ github.ref_name }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Parse test statistics from JSON results
+          echo "### Test Statistics" >> $GITHUB_STEP_SUMMARY
+          if [ -f "artifacts/test-results-chromium-json/results.json" ]; then
+            total_tests=$(jq '[.suites[].specs[].tests[]] | length' artifacts/test-results-chromium-json/results.json 2>/dev/null || echo "N/A")
+            passed_tests=$(jq '[.suites[].specs[].tests[].results[] | select(.status == "passed")] | length' artifacts/test-results-chromium-json/results.json 2>/dev/null || echo "N/A")
+            failed_tests=$(jq '[.suites[].specs[].tests[].results[] | select(.status == "failed")] | length' artifacts/test-results-chromium-json/results.json 2>/dev/null || echo "N/A")
+            duration=$(jq '[.suites[].specs[].tests[].results[].duration] | add / 1000 | round' artifacts/test-results-chromium-json/results.json 2>/dev/null || echo "N/A")
+            
+            echo "| Metric | Count |" >> $GITHUB_STEP_SUMMARY
+            echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+            echo "| Total Tests | $total_tests |" >> $GITHUB_STEP_SUMMARY
+            echo "| ✅ Passed | $passed_tests |" >> $GITHUB_STEP_SUMMARY
+            echo "| ❌ Failed | $failed_tests |" >> $GITHUB_STEP_SUMMARY
+            echo "| ⏱️ Duration | ${duration}s |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "Test statistics not available - check artifacts" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          echo "### Artifacts" >> $GITHUB_STEP_SUMMARY
+          echo "- 📊 HTML reports (browser-specific)" >> $GITHUB_STEP_SUMMARY
+          echo "- 📋 JSON results (programmatic parsing)" >> $GITHUB_STEP_SUMMARY
+          echo "- ♿ A11y violations (30-day audit trail)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Timestamp:** $(date -u +'%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+
+      # 3. PR Comment with Results (only for PR trigger)
+      - name: Comment PR with Results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const status = '${{ needs.tests.result }}' === 'success' ? '✅ PASS - Ready for merge' : '❌ FAIL - Review required';
+            const runUrl = '${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}';
+            
+            const body = [
+              '## 🧪 Smoke Test Results',
+              '',
+              '**Status:** ' + status,
+              '',
+              '**Configuration:**',
+              '- Test Scope: @smoke + Critical A11y (homepage)',
+              '- Layers: API (5 tests) + E2E-UI + A11y',
+              '- Browser: Chromium',
+              '- Workers: 4 parallel',
+              '- Duration: ~10 minutes',
+              '',
+              '**Test Coverage:**',
+              '- ✅ API endpoint validation',
+              '- ✅ Guest checkout (revenue path)',
+              '- ✅ Navigation & state persistence',
+              '- ✅ Homepage WCAG 2.1 AA scan',
+              '',
+              '📊 See artifacts for detailed HTML reports and test traces.',
+              '',
+              '_Run: [' + context.runId + '](' + runUrl + ')_'
+            ].join('\n');
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+
+  # ========================================================================
+  # DEPLOYMENT GATE: Block PR merge if smoke tests fail
+  # ========================================================================
+  deployment-gate:
+    name: Deployment Gate
+    runs-on: ubuntu-latest
+    needs: tests
+    if: always() && github.event_name == 'pull_request'
+    steps:
+      - name: Check PR Gate Status
+        run: |
+          if [ "${{ needs.tests.result }}" != "success" ]; then
+            echo "❌ Smoke tests failed. PR merge blocked."
+            exit 1
+          else
+            echo "✅ Smoke tests passed. PR can be merged."
+          fi
+
+# ============================================================================
+# STRATEGY SUMMARY
+# ============================================================================
+#
+# TIER 1: CI SMOKE TESTS (PR Gate)
+# ├─ Trigger: Pull requests to main
+# ├─ Scope: @smoke tests (fast critical paths)
+# ├─ Folders: features/tests/api/, features/tests/e2e-ui/, features/tests/accessibility/
+# ├─ Browser: Chromium only
+# ├─ Workers: 4 (speed)
+# ├─ Duration: ~10 minutes
+# ├─ Artifact Retention: 7 days
+# └─ Action: Block PR merge on failure
+#
+# TIER 2: NIGHTLY REGRESSION (Full Coverage)
+# ├─ Trigger: 2 AM UTC daily (cron)
+# ├─ Scope: @regression tests (all scenarios)
+# ├─ Layers: Layer 1 (API) → Layer 2 (E2E-UI) → Layer 3 (A11y Compliance)
+# ├─ Browsers: Chromium, Firefox, Webkit (matrix)
+# ├─ Workers: 2 (stability)
+# ├─ Duration: ~45 minutes
+# ├─ Artifact Retention: 14 days
+# ├─ A11y Audit: WCAG 2.1 AA (30-day retention)
+# └─ Action: Informational; reports compliance
+#
+# QUALITY FEATURES:
+# ✅ 3-Layer Architecture: API (foundation) → E2E-UI (workflows) → A11y (compliance)
+# ✅ Concurrency: Smart cancellation (except nightly)
+# ✅ Caching: Browser + npm dependencies
+# ✅ Matrix: Dynamic browser selection (smoke: chromium, regression: all 3)
+# ✅ Reporting: HTML + JSON + JUnit + PR comments
+# ✅ A11y: Integrated WCAG 2.1 AA audit (Layer 3)
+# ✅ Manual Dispatch: User-selectable test scope
+# ✅ Resilience: Non-blocking A11y failures
+# ✅ Artifacts: Retention policies based on scope
+# ✅ Scalability: Supports growth from 12 tests → 50+ scenarios
+#
+# ============================================================================

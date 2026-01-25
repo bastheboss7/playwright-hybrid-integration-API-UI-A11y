@@ -1,7 +1,7 @@
 {
-  "name": "evri-playwright-automation",
+  "name": "demoblaze-playwright-automation",
   "version": "1.0.0",
-  "description": "Enterprise-grade Playwright test automation framework for Evri Parcel Delivery",
+  "description": "Comprehensive Playwright test automation framework for Demoblaze e-commerce testing (Companies House Assessment Ref: 437782)",
   "main": "index.js",
   "scripts": {
     "test": "playwright test",
@@ -10,15 +10,17 @@
     "test:chrome": "playwright test --project=chromium",
     "test:firefox": "playwright test --project=firefox",
     "test:safari": "playwright test --project=webkit",
-    "test:mobile": "playwright test --project=mobile-chrome",
-    "test:smoke": "playwright test evri-smoke.spec.ts",
-    "test:prohibited": "playwright test evri-prohibited-items.spec.ts",
-    "clean": "rm -rf test-results playwright-report allure-results",
+    "test:smoke": "playwright test demoblaze.spec.ts -g '1. Smoke'",
+    "test:e2e": "playwright test demoblaze.spec.ts -g '2. End-to-End'",
+    "test:data-driven": "playwright test demoblaze.spec.ts -g '3. Data-Driven'",
+    "test:negative": "playwright test demoblaze.spec.ts -g '4. Negative'",
+    "test:integration": "playwright test demoblaze.spec.ts -g '5. Integration'",
+    "test:a11y": "playwright test accessibility",
+    "clean": "rm -rf test-results playwright-report allure-results a11y-results",
     "clean:test": "npm run clean && npm test",
     "report": "playwright show-report",
-    "report:open": "playwright show-report playwright-report",
     "ui": "playwright test --ui",
-    "codegen": "playwright codegen https://www.evri.com",
+    "codegen": "playwright codegen https://www.demoblaze.com/index.html",
     "install:browsers": "playwright install"
   },
   "keywords": [
@@ -27,17 +29,18 @@
     "e2e",
     "automation",
     "testing",
-    "evri",
-    "enterprise"
+    "demoblaze",
+    "page-object-model",
+    "pom",
+    "companies-house"
   ],
-  "author": "Automation Team",
+  "author": "Senior Test Engineer",
   "license": "ISC",
   "type": "commonjs",
   "devDependencies": {
+    "@axe-core/playwright": "^4.11.0",
     "@playwright/test": "^1.57.0",
     "@types/node": "^25.0.3",
-    "allure-playwright": "^3.4.3",
-    "dotenv": "^17.2.3",
     "playwright": "^1.57.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"

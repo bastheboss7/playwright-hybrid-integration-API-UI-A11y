@@ -49,3 +49,9 @@ Thumbs.db
 *.tmp
 *.temp
 .cache/
+
+#a11y reports
+a11y-results
+
+# docs
+docs/
