@@ -23,7 +23,6 @@ This assessment demonstrates **strategic quality engineering** through a 3-pilla
 | **[📄 TESTSTRATEGY.md](TESTSTRATEGY.md)** | Strategic test plan & requirement mapping | ✅ Req 1: Planning & Architecture<br>✅ Req 2: Test Selection & Value-Based Rationale<br>✅ Req 3: Issue Log with Strategic Impact<br>✅ ROI Model: 62.5% efficiency gain |
 | **[📁 /governance](governance/)** | Deep-dive governance framework | [ROI_MODEL.md](governance/ROI_MODEL.md): Automation business case<br>[STANDARDS.md](governance/STANDARDS.md): Technical quality gates<br>[QUALITY_GATES.md](governance/QUALITY_GATES.md): Three Amigos & Gate 5 |
 | **[📁 /features/tests](features/tests/)** | Playwright test implementation | [/api](features/tests/api/): API contract validation<br>[/e2e-ui](features/tests/e2e-ui/): Revenue path E2E flows<br>[/accessibility](features/tests/accessibility/): WCAG 2.1 AA audits |
-| **[🏗️ ARCHITECTURE.md](ARCHITECTURE.md)** | Technical design patterns | Separation of Concerns (SOC)<br>Fixture-based DI<br>Accessibility-first locators |
 
 ---
 
@@ -171,7 +170,6 @@ test('@a11y Homepage Accessibility Audit', async ({ page }) => {
 - **Clear Root Cause:** Failures isolate to contract, workflow, or compliance
 - **Business Alignment:** Tests weighted by revenue/compliance risk (checkout 9/10; navigation 3/10)
 
-**Reference:** [ARCHITECTURE.md - Layer Responsibilities](ARCHITECTURE.md#-layer-responsibilities)
 
 ---
 
@@ -318,7 +316,6 @@ test('Checkout', async ({ page }) => {
 });
 ```
 
-**Reference:** [ARCHITECTURE.md - SOC Principles](ARCHITECTURE.md#-layer-responsibilities)
 
 ---
 
@@ -370,9 +367,9 @@ Playwright/
 │   └── workflows/
 │       └── test-automation.yml  # 2-tier CI/CD pipeline
 ├── TESTSTRATEGY.md              # Strategic test plan (Req 1-3)
-├── ARCHITECTURE.md              # Technical design patterns
 ├── playwright.config.ts         # Configuration
 └── README.md                    # This file
+
 ```
 
 ---
