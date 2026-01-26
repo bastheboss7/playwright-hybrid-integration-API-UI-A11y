@@ -20,7 +20,7 @@ on:
 
   # Trigger 2: Push to main (Smoke tests verification)
   push:
-    branches: [ main, develop ]  # Added develop for shift-left validation
+    branches: [ main ] 
     paths:
       - 'features/**'
       - 'playwright.config.ts'
@@ -226,6 +226,29 @@ jobs:
           comment_mode: always
           compare_to_earlier_commit: true
 
+  # ========================================================================
+  # API TESTS: Run Playwright API smoke tests (api project)
+  # ========================================================================
+  api-tests:
+    name: API Smoke Tests
+    runs-on: ubuntu-latest
+    needs: setup
+    timeout-minutes: 10
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18.x'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci --omit=optional
+
+      - name: Run API Smoke Tests
+        run: npx playwright test features/tests/api/ --grep "@smoke" --project=api --reporter=html,json,junit
   # ========================================================================
   # A11Y AUDIT: Accessibility compliance (WCAG 2.1 AA)
   # ========================================================================

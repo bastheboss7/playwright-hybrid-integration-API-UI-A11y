@@ -25,7 +25,7 @@ import { test } from '../../fixtures';
  * ============================================================================
  */
 
-test.describe('@smoke @ui E2E Tests: Guest Checkout Flow', () => {
+test.describe('@ui E2E Tests: Guest Checkout Flow', () => {
 
   // Setup persistent dialog handler for all tests in this suite
   test.beforeEach(async ({ page }) => {
