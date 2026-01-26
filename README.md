@@ -394,21 +394,6 @@ Playwright/
 
 ---
 
-## 🎓 Key Learnings & Issue Resolution
-
-### Issue Log (Strategic Impact)
-
-| ID | Issue | Root Cause | Remediation | Strategic Impact |
-|----|-------|------------|-------------|------------------|
-| **IL-01** | Flaky waits in UI flows | Hard-coded timeouts | Migrated to [`WaitHelper`](features/utils/WaitHelper.ts) | Automation Stability > 98%; MTTD < 1 hr |
-| **IL-02** | Ambiguous validation alerts | Inconsistent modal state handling | Added explicit modal visibility checks | Defect Leakage ↓ (< 2%); MTTR ↓ to < 4 hrs |
-| **IL-03** | Slow PR feedback | Unsharded execution | Enforced tagged tiers in [CI/CD](.github/workflows/test-automation.yml) | Feedback Loop < 10 mins; CoQ trend ↓ YoY |
-| **IL-04** | Readability regression risk | Catalogue text not asserted | Added first-product text verification | DDP ↑ (higher discovery in nightly regression) |
-
-**Reference:** [TESTSTRATEGY.md - Issue Log](TESTSTRATEGY.md#3-issue-log-with-strategic-impact)
-
----
-
 ## 🛠️ Technologies
 
 ```json
