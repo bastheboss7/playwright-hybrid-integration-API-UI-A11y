@@ -1,6 +1,7 @@
 import { Page, expect } from '@playwright/test';
 import { DemoblazeLocators } from '../locators/DemoblazeLocators';
 import { BasePage } from '../base/BasePage';
+import { WaitHelper } from '../utils/WaitHelper';
 
 /**
  * DemoblazeHomePage - Page Object Model for demoblaze.com home page
@@ -150,7 +151,11 @@ export class DemoblazeHomePage extends BasePage {
    */
   async addToCart() {
     await this.click(this.locators.addToCartButton);
-    await this.page.waitForTimeout(800); // Wait for dialog to be dismissed
+    await WaitHelper.waitForCondition(
+      async () => !(await this.locators.alertBox.isVisible().catch(() => false)),
+      3000,
+      100
+    );
   }
 
   /**
@@ -169,7 +174,11 @@ export class DemoblazeHomePage extends BasePage {
     await this.clickProduct(productName);
     await this.page.waitForLoadState('domcontentloaded');
     await this.click(this.locators.addToCartButton);
-    await this.page.waitForTimeout(800); // Wait for dialog to be dismissed
+    await WaitHelper.waitForCondition(
+      async () => !(await this.locators.alertBox.isVisible().catch(() => false)),
+      3000,
+      100
+    );
   }
 
   /**
@@ -228,7 +237,11 @@ export class DemoblazeHomePage extends BasePage {
     await this.clickProduct(productName);
     await this.waitForLoad();
     await this.addToCart();
-    await this.page.waitForTimeout(800);
+    await WaitHelper.waitForCondition(
+      async () => !(await this.locators.alertBox.isVisible().catch(() => false)),
+      3000,
+      100
+    );
     await this.goToCart();
   }
 
@@ -250,8 +263,12 @@ export class DemoblazeHomePage extends BasePage {
     await this.page.reload();
     await this.waitForLoad();
     
-    // Add extra wait for cart items to load after refresh (increased for timing)
-    await this.page.waitForTimeout(2000);
+    // Wait until the product is visible after refresh (condition-based, not fixed sleep)
+    await WaitHelper.waitForCondition(
+      async () => await this.verifyProductInCart(productName),
+      5000,
+      150
+    );
     
     // Check persistence in cart
     const stillVisible = await this.verifyProductInCart(productName);

@@ -118,8 +118,10 @@ test.describe('@smoke @ui E2E Tests: Guest Checkout Flow', () => {
   /**
    * SCENARIO 3B: FORM VALIDATION - EMPTY SUBMISSION ERROR HANDLING
    * 
-   * Tests that the checkout form rejects empty submissions.
-   * Validates form validation rules and error handling.
+     * Tests that the checkout form rejects empty submissions.
+     * Validates both:
+     * - Form validation (modal remains open, submission blocked)
+     * - Error handling (on-screen alert is shown to the user)
    * 
    * BUSINESS VALUE:
    * - Prevents incomplete orders (data quality)
@@ -142,8 +144,17 @@ test.describe('@smoke @ui E2E Tests: Guest Checkout Flow', () => {
 
     // === Test: Submit empty form and verify validation ===
     console.log('🔍 Attempting to submit empty form...');
-    const validationWorks = await demoblazeCartPage.submitEmptyCheckoutAndVerifyValidation();
-    expect(validationWorks).toBe(true);
+    const { validationWorks, alertMessage } = await demoblazeCartPage.submitEmptyCheckoutAndVerifyValidation();
+
+    await test.step('Error handling: alert displayed to user', async () => {
+      expect(alertMessage).toBeTruthy();
+      expect(alertMessage as string).not.toMatch(/thank you/i);
+    });
+
+    await test.step('Form validation: modal remains open (submission blocked)', async () => {
+      await expect(demoblazeCartPage.locators.orderModal).toBeVisible();
+      expect(validationWorks).toBe(true);
+    });
 
     // GOVERNANCE NOTE: This test validates form validation governance
     // (Pillar 1: Data Quality Audit Trail)

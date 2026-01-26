@@ -1,6 +1,7 @@
 import { Page, Locator, expect } from '@playwright/test';
 import { DemoblazeLocators } from '../locators/DemoblazeLocators';
 import { BasePage } from '../base/BasePage';
+import { WaitHelper } from '../utils/WaitHelper';
 
 /**
  * DemoblazeCartPage - Page Object Model for demoblaze.com shopping cart
@@ -207,7 +208,11 @@ export class DemoblazeCartPage extends BasePage {
     
     // Attempt submit
     await this.click(this.purchaseButton);
-    await this.page.waitForTimeout(1000);
+    await WaitHelper.waitForCondition(
+      async () => await this.isOrderModalVisible(),
+      3000,
+      100
+    );
 
     // Check if modal still visible (validation worked)
     const stillVisible = await this.isOrderModalVisible();
@@ -219,16 +224,39 @@ export class DemoblazeCartPage extends BasePage {
    * Submit empty checkout form and verify validation
    * @returns true if validation works (modal remains open)
    */
-  async submitEmptyCheckoutAndVerifyValidation(): Promise<boolean> {
-    const validationWorks = await this.verifyFormValidationOnEmptySubmit();
-    
-    if (validationWorks) {
-      console.log('✅ Validation: Modal remains open (empty submission rejected)');
-    } else {
-      console.log('⚠️  Validation: Modal closed unexpectedly');
+  async submitEmptyCheckoutAndVerifyValidation(): Promise<{ validationWorks: boolean; alertMessage: string | null }> {
+    const initiallyVisible = await this.isOrderModalVisible();
+
+    // Attempt submit (empty form)
+    await this.click(this.purchaseButton);
+
+    // Wait for on-screen alert modal (sweet-alert) to appear and capture text
+    let alertMessage: string | null = null;
+    try {
+      await this.locators.alertBox.waitFor({ state: 'visible', timeout: 3000 });
+      alertMessage = (await this.getText(this.locators.alertBox))?.trim() || null;
+    } catch {
+      // No sweet-alert appeared; leave message as null
     }
-    
-    return validationWorks;
+
+    // Ensure the order modal remains visible (validation should prevent closing)
+    await WaitHelper.waitForCondition(
+      async () => await this.isOrderModalVisible(),
+      3000,
+      100
+    ).catch(() => undefined);
+
+    const stillVisible = await this.isOrderModalVisible();
+    const preventedSuccess = !(alertMessage && /thank you/i.test(alertMessage));
+    const validationWorks = initiallyVisible && stillVisible && !!alertMessage && preventedSuccess;
+
+    if (validationWorks) {
+      console.log('✅ Validation: Modal remains open and error message displayed');
+    } else {
+      console.log('❌ Validation BUG: No error alert shown or modal dismissed on empty submission');
+    }
+
+    return { validationWorks, alertMessage };
   }
 
   /**
