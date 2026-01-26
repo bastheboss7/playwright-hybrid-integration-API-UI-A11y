@@ -42,7 +42,11 @@ Governance is enforced via [Quality Gates](./governance/QUALITY_GATES.md), [RBT 
 - Standards: Automation Standards, Three Amigos, and Blameless RCA (see governance/ for all supporting docs).
 
 ### 1.3 Architecture & Execution
-- Framework: Playwright + TypeScript (see README.md).
+- **Framework Selection Rationale:**
+  - **Playwright** was chosen for its robust cross-browser automation, modern API, and first-class support for accessibility and API testing. It enables parallel execution, rich debugging (traces, videos), and seamless integration with CI/CD pipelines, making it ideal for enterprise-grade web automation.
+  - **TypeScript** provides strong typing, improved maintainability, and early error detection, which are critical for scaling test suites and ensuring long-term code quality. Its integration with Playwright enhances developer productivity and test reliability.
+  - This combination ensures rapid, stable, and maintainable automation aligned with industry best practices.
+  - (See README.md for quick start and setup.)
 - Config: playwright.config.ts with tagged execution (@smoke, @regression).
 - CI/CD: Two-tier pipeline (.github/workflows/test-automation.yml):
   - Tier 1 (PR Gate): @smoke, <=10 minutes
