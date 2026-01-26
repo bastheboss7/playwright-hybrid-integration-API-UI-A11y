@@ -244,8 +244,12 @@ jobs:
           node-version: '18.x'
           cache: 'npm'
 
+
       - name: Install Dependencies
         run: npm ci --omit=optional
+
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps chromium
 
       - name: Run API Smoke Tests
         run: npx playwright test features/tests/api/ --grep "@smoke" --project=api --reporter=html,json,junit
