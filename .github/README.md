@@ -23,6 +23,7 @@ Complete guide to setting up and troubleshooting GitHub Pages for live test repo
 | **[PAGES_QUICK_START.md](PAGES_QUICK_START.md)** | Quick reference | First-time setup, just need the essentials |
 | **[GITHUB_PAGES_SETUP.md](../GITHUB_PAGES_SETUP.md)** | Complete guide | Want to understand deployment methods, need detailed steps |
 | **[DEPLOYMENT_FLOW.md](DEPLOYMENT_FLOW.md)** | Architecture diagram | Want to see how workflow deploys, understand data flow |
+| **[BRANCH_DEPLOYMENT.md](BRANCH_DEPLOYMENT.md)** | Branch-based deployment | Understand which branches deploy, deploy from develop |
 | **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** | Issue resolution | Something's not working, need to debug |
 
 ## 🚀 Quick Answer: Common Questions
@@ -41,6 +42,9 @@ Complete guide to setting up and troubleshooting GitHub Pages for live test repo
 
 ### Q: How do I trigger a deployment?
 **A:** Push to main, or Actions → Test Automation Pipeline → Run workflow
+
+### Q: Does pushing to develop trigger deployment?
+**A:** No, only `main` branch auto-deploys. Use manual dispatch to deploy from develop. See [BRANCH_DEPLOYMENT.md](BRANCH_DEPLOYMENT.md)
 
 ### Q: Can I use "Deploy from a branch"?
 **A:** No, the workflow is designed for GitHub Actions deployment
