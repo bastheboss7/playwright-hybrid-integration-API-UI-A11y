@@ -1,5 +1,7 @@
 # GitHub Pages Setup Guide for Live Test Reporting
 
+> **📍 Repository-Specific Guide**: This guide is customized for `bastheboss7/playwright-hybrid-integration-API-UI-A11y`. If you're forking this repo, replace repository-specific URLs with your own.
+
 ## 🎯 Overview
 
 This repository uses **GitHub Actions** to automatically deploy test reports to GitHub Pages. This is the **modern deployment method** that does NOT require a `gh-pages` branch.
