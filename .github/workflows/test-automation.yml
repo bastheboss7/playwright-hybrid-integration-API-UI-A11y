@@ -494,22 +494,22 @@ jobs:
       # 2. Create merged report directory
       - name: Prepare Report Directory
         run: |
-          mkdir -p gh-pages
+          mkdir -p gh-pages/data
           
           # Find and copy the first available Playwright report
           for browser in chromium firefox webkit; do
             report_dir="./artifacts/playwright-report-${browser}-${{ github.run_id }}"
             if [ -d "$report_dir" ]; then
               echo "Found report for $browser, copying..."
-              cp -r "$report_dir"/* gh-pages/ || true
+              cp -r "$report_dir"/* gh-pages/data/ || true
               break
             fi
           done
           
           # If no browser-specific report found, check for generic report
-          if [ ! -f "gh-pages/index.html" ]; then
+          if [ ! -f "gh-pages/data/index.html" ]; then
             echo "No browser reports found, creating fallback index..."
-            mkdir -p gh-pages
+            mkdir -p gh-pages/data
           fi
 
       # 3. Create custom landing page
