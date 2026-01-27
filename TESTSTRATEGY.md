@@ -55,7 +55,13 @@ Governance is enforced via [Quality Gates](./governance/QUALITY_GATES.md), [RBT 
 
 ### 1.4 Data & Environments
 - Environment: Defaults from [playwright.config.ts](playwright.config.ts).
-- Data strategy: Synthetic, non-PII; modal forms and carts reset per test via fixtures/utilities.
+- Data strategy: 
+  - **Centralized Test Data:** All test data is managed in [features/data/demoblazeTestData.ts](features/data/demoblazeTestData.ts) following enterprise standards
+  - Single source of truth for products, categories, checkout forms, and contact data
+  - Type-safe data access with TypeScript interfaces
+  - No hardcoded values in test files - all data imported from centralized module
+  - Synthetic, non-PII data; modal forms and carts reset per test via fixtures/utilities
+  - Easy environment-specific overrides and data-driven testing support
 - Observability: Rich test logs and Playwright trace; RCA follows blameless post-mortem practices per [Governance Standards](./governance/STANDARDS.md).
 
 ---
@@ -171,5 +177,6 @@ Outcome: A documented $62.5\%$ efficiency gain, aligned to "Time to Value" targe
 - Task Sheet: [docs/TaskRequirment.md](docs/TaskRequirment.md)
 - Assessment README: [Playwright/README.md](README.md)
 - Key test asset: [features/tests/e2e-ui/e2e-guest-checkout.spec.ts](features/tests/e2e-ui/e2e-guest-checkout.spec.ts)
- - Page object: [features/pages/DemoblazeHomePage.ts](features/pages/DemoblazeHomePage.ts)
- - Strategy & ROI: [ROI Model](./governance/ROI_MODEL.md), [Quality Gates](./governance/QUALITY_GATES.md), [Standards](./governance/STANDARDS.md)
+- Page object: [features/pages/DemoblazeHomePage.ts](features/pages/DemoblazeHomePage.ts)
+- **Centralized Test Data:** [features/data/demoblazeTestData.ts](features/data/demoblazeTestData.ts)
+- Strategy & ROI: [ROI Model](./governance/ROI_MODEL.md), [Quality Gates](./governance/QUALITY_GATES.md), [Standards](./governance/STANDARDS.md)

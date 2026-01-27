@@ -1,5 +1,6 @@
 import { expect } from '@playwright/test';
 import { test } from '../../fixtures';
+import { products, checkoutData } from '../../data/demoblazeTestData';
 
 /**
  * ============================================================================
@@ -67,7 +68,7 @@ test.describe('@ui E2E Tests: Guest Checkout Flow', () => {
 
     // === Step 1: Select Product ===
     console.log('📦 Step 1: Selecting product...');
-    await demoblazeHomePage.clickProduct('Samsung galaxy s6');
+    await demoblazeHomePage.clickProduct(products.samsungGalaxyS6);
     console.log('✅ Product selected');
 
     // === Step 2: Add to Cart ===
@@ -81,7 +82,7 @@ test.describe('@ui E2E Tests: Guest Checkout Flow', () => {
     await demoblazeHomePage.goToCart();
 
     // === Step 4: Verify Product in Cart ===
-    await demoblazeCartPage.verifyCartItem('Samsung galaxy s6');
+    await demoblazeCartPage.verifyCartItem(products.samsungGalaxyS6);
     console.log('✅ Product verified in cart');
 
     // === Step 5: Click Place Order ===
@@ -93,12 +94,12 @@ test.describe('@ui E2E Tests: Guest Checkout Flow', () => {
     // === Step 6: Fill Guest Checkout Form ===
     console.log('📝 Step 6: Filling checkout form...');
     await demoblazeCartPage.fillOrderForm(
-      'Test User',
-      'United Kingdom',
-      'London',
-      '4111111111111111',
-      '12',
-      '2025'
+      checkoutData.validOrder.name,
+      checkoutData.validOrder.country,
+      checkoutData.validOrder.city,
+      checkoutData.validOrder.creditCard,
+      checkoutData.validOrder.month,
+      checkoutData.validOrder.year
     );
     console.log('✅ Guest Checkout Form: All fields completed');
 
@@ -137,7 +138,7 @@ test.describe('@ui E2E Tests: Guest Checkout Flow', () => {
     console.log('📋 E2E Test: Form Validation - Empty Submission');
 
     // === Setup: Add product and navigate to checkout ===
-    await demoblazeHomePage.addProductAndNavigateToCheckout('Samsung galaxy s6');
+    await demoblazeHomePage.addProductAndNavigateToCheckout(products.samsungGalaxyS6);
 
     // === Open Place Order modal ===
     await demoblazeCartPage.clickPlaceOrder();

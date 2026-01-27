@@ -6,6 +6,10 @@
 ![Accessibility](https://img.shields.io/badge/WCAG_2.1_AA-Compliant-brightgreen?style=for-the-badge)
 ![Efficiency](https://img.shields.io/badge/ROI-62.5%25-blue?style=for-the-badge)
 
+[![Live Test Report](https://img.shields.io/badge/📊_Live_Report-GitHub_Pages-2ea44f?style=for-the-badge&logo=github)](https://bastheboss7.github.io/playwright-hybrid-integration-API-UI-A11y/)
+
+> 👆 **[Click here to view the Live Test Report](https://bastheboss7.github.io/playwright-hybrid-integration-API-UI-A11y/)** - Updated automatically after each test run
+
 ---
 
 ## 📋 Executive Summary
@@ -74,9 +78,12 @@ cat a11y-results/a11y-audit-*.json
 ### 1. **Playwright Fixtures Pattern** (No Traditional Hooks)
 ```typescript
 // Dependency injection via fixtures (features/fixtures.ts)
+import { products } from '../../data/demoblazeTestData';
+
 test('checkout', async ({ demoblazeHomePage, demoblazeCartPage }) => {
   // Page objects auto-injected, no manual setup
-  await demoblazeHomePage.addProductToCart('Samsung galaxy s6');
+  // Test data centralized for maintainability
+  await demoblazeHomePage.addProductToCart(products.samsungGalaxyS6);
   await demoblazeCartPage.proceedToCheckout();
 });
 ```
@@ -90,7 +97,36 @@ test('checkout', async ({ demoblazeHomePage, demoblazeCartPage }) => {
 
 ---
 
-### 2. **Hybrid API + UI Validation** (Shift-Left Testing)
+### 2. **Centralized Test Data** (Single Source of Truth)
+```typescript
+// All test data centralized in features/data/demoblazeTestData.ts
+import { products, categories, checkoutData } from '../../data/demoblazeTestData';
+
+test('checkout', async ({ demoblazeHomePage, demoblazeCartPage }) => {
+  await demoblazeHomePage.clickProduct(products.samsungGalaxyS6);
+  await demoblazeCartPage.fillOrderForm(
+    checkoutData.validOrder.name,
+    checkoutData.validOrder.country,
+    checkoutData.validOrder.city,
+    checkoutData.validOrder.creditCard,
+    checkoutData.validOrder.month,
+    checkoutData.validOrder.year
+  );
+});
+```
+
+**Benefits:**
+- ✅ Single source of truth for all test data
+- ✅ Type-safe data access with TypeScript
+- ✅ Easy environment-specific overrides
+- ✅ No hardcoded values in tests
+- ✅ Improved maintainability and reusability
+
+**Reference:** [features/data/demoblazeTestData.ts](features/data/demoblazeTestData.ts)
+
+---
+
+### 3. **Hybrid API + UI Validation** (Shift-Left Testing)
 ```typescript
 // API layer validates contracts first (features/tests/api/)
 test('@api Product Catalog Integrity', async ({ apiClient, page }) => {
@@ -99,8 +135,10 @@ test('@api Product Catalog Integrity', async ({ apiClient, page }) => {
 });
 
 // UI layer trusts API contract, focuses on workflows
+import { products } from '../../data/demoblazeTestData';
+
 test('@smoke Guest Checkout Flow', async ({ demoblazeHomePage }) => {
-  await demoblazeHomePage.addProductToCart('Samsung galaxy s6');
+  await demoblazeHomePage.addProductToCart(products.samsungGalaxyS6);
   // Revenue path validated end-to-end
 });
 ```
@@ -114,7 +152,7 @@ test('@smoke Guest Checkout Flow', async ({ demoblazeHomePage }) => {
 
 ---
 
-### 3. **WCAG 2.1 AA Accessibility Audits** (Soft Assertions)
+### 4. **WCAG 2.1 AA Accessibility Audits** (Soft Assertions)
 ```typescript
 // Non-blocking A11y scan (features/tests/accessibility/)
 test('@a11y Homepage Accessibility Audit', async ({ page }) => {

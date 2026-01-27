@@ -68,6 +68,8 @@ permissions:
   contents: read
   checks: write
   pull-requests: write
+  pages: write
+  id-token: write
 
 # ============================================================================
 # JOBS
@@ -468,6 +470,277 @@ jobs:
           else
             echo "✅ Smoke tests passed. PR can be merged."
           fi
+
+  # ========================================================================
+  # DEPLOY REPORT: Publish test results to GitHub Pages
+  # ========================================================================
+  deploy-report:
+    name: Deploy Report to GitHub Pages
+    runs-on: ubuntu-latest
+    needs: [setup, tests, results-summary]
+    if: always() && (github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    
+    steps:
+      # 1. Download all test artifacts
+      - name: Download All Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./artifacts
+
+      # 2. Create merged report directory
+      - name: Prepare Report Directory
+        run: |
+          mkdir -p gh-pages/data
+          
+          # Find and copy the first available Playwright report
+          for browser in chromium firefox webkit; do
+            report_dir="./artifacts/playwright-report-${browser}-${{ github.run_id }}"
+            if [ -d "$report_dir" ]; then
+              echo "Found report for $browser, copying..."
+              cp -r "$report_dir"/* gh-pages/data/ || true
+              break
+            fi
+          done
+          
+          # If no browser-specific report found, check for generic report
+          if [ ! -f "gh-pages/data/index.html" ]; then
+            echo "No browser reports found, creating fallback index..."
+          fi
+
+      # 3. Create custom landing page
+      - name: Create Landing Page
+        run: |
+          cat > gh-pages/index.html << 'EOFHTML'
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Companies House QA Assessment - Test Report</title>
+            <style>
+              * { margin: 0; padding: 0; box-sizing: border-box; }
+              body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                min-height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 20px;
+              }
+              .container {
+                background: white;
+                border-radius: 16px;
+                box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+                max-width: 900px;
+                width: 100%;
+                padding: 50px;
+                animation: fadeIn 0.6s ease-out;
+              }
+              @keyframes fadeIn {
+                from { opacity: 0; transform: translateY(20px); }
+                to { opacity: 1; transform: translateY(0); }
+              }
+              h1 {
+                color: #2d3748;
+                margin-bottom: 12px;
+                font-size: 2.8em;
+                font-weight: 700;
+              }
+              .subtitle {
+                color: #718096;
+                margin-bottom: 35px;
+                font-size: 1.2em;
+                font-weight: 500;
+              }
+              .badges {
+                margin: 25px 0 35px;
+                display: flex;
+                flex-wrap: wrap;
+                gap: 12px;
+              }
+              .badge {
+                display: inline-flex;
+                align-items: center;
+                padding: 8px 16px;
+                border-radius: 6px;
+                font-size: 0.9em;
+                font-weight: 600;
+                gap: 6px;
+              }
+              .badge-playwright { background: #2EAD33; color: white; }
+              .badge-typescript { background: #007ACC; color: white; }
+              .badge-wcag { background: #28a745; color: white; }
+              .badge-roi { background: #3b82f6; color: white; }
+              .meta {
+                background: linear-gradient(to right, #f7fafc, #edf2f7);
+                border-left: 4px solid #667eea;
+                padding: 25px;
+                margin-bottom: 35px;
+                border-radius: 8px;
+              }
+              .meta-title {
+                font-size: 1.1em;
+                font-weight: 700;
+                color: #2d3748;
+                margin-bottom: 15px;
+              }
+              .meta-item {
+                display: flex;
+                justify-content: space-between;
+                padding: 10px 0;
+                border-bottom: 1px solid #e2e8f0;
+              }
+              .meta-item:last-child { border-bottom: none; }
+              .meta-label {
+                font-weight: 600;
+                color: #4a5568;
+              }
+              .meta-value {
+                color: #718096;
+                font-family: 'Courier New', monospace;
+                font-size: 0.95em;
+              }
+              .buttons {
+                display: flex;
+                gap: 15px;
+                flex-wrap: wrap;
+              }
+              .btn {
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 16px 32px;
+                border-radius: 10px;
+                text-decoration: none;
+                font-weight: 600;
+                font-size: 1.05em;
+                transition: all 0.3s ease;
+                box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+              }
+              .btn:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+              }
+              .btn-secondary {
+                background: linear-gradient(135deg, #718096 0%, #4a5568 100%);
+                box-shadow: 0 4px 15px rgba(113, 128, 150, 0.4);
+              }
+              .btn-secondary:hover {
+                box-shadow: 0 6px 20px rgba(113, 128, 150, 0.6);
+              }
+              .footer {
+                margin-top: 30px;
+                padding-top: 25px;
+                border-top: 2px solid #e2e8f0;
+                text-align: center;
+                color: #718096;
+                font-size: 0.9em;
+              }
+              .footer a {
+                color: #667eea;
+                text-decoration: none;
+                font-weight: 600;
+              }
+              .footer a:hover {
+                text-decoration: underline;
+              }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <h1>🎭 Companies House QA Assessment</h1>
+              <p class="subtitle">Strategic Test Automation Framework | Reference: 437782</p>
+              
+              <div class="badges">
+                <span class="badge badge-playwright">🎭 Playwright</span>
+                <span class="badge badge-typescript">💙 TypeScript</span>
+                <span class="badge badge-wcag">♿ WCAG 2.1 AA</span>
+                <span class="badge badge-roi">📈 ROI: 62.5%</span>
+              </div>
+              
+              <div class="meta">
+                <div class="meta-title">📊 Latest Test Execution</div>
+                <div class="meta-item">
+                  <span class="meta-label">Last Run:</span>
+                  <span class="meta-value" id="timestamp"></span>
+                </div>
+                <div class="meta-item">
+                  <span class="meta-label">Branch:</span>
+                  <span class="meta-value">GITHUB_REF_NAME</span>
+                </div>
+                <div class="meta-item">
+                  <span class="meta-label">Commit:</span>
+                  <span class="meta-value">GITHUB_SHA_SHORT</span>
+                </div>
+                <div class="meta-item">
+                  <span class="meta-label">Test Scope:</span>
+                  <span class="meta-value">TEST_SCOPE</span>
+                </div>
+                <div class="meta-item">
+                  <span class="meta-label">Run ID:</span>
+                  <span class="meta-value">#GITHUB_RUN_ID</span>
+                </div>
+              </div>
+              
+              <div class="buttons">
+                <a href="./data/" class="btn">
+                  📊 View Detailed Report →
+                </a>
+                <a href="https://github.com/GITHUB_REPOSITORY" class="btn btn-secondary">
+                  📁 View Repository →
+                </a>
+              </div>
+              
+              <div class="footer">
+                <p>Automated with ❤️ by <a href="https://playwright.dev" target="_blank">Playwright</a></p>
+                <p style="margin-top: 10px; font-size: 0.85em;">3-Pillar Architecture: Strategic Governance | Technical Excellence | GenAI Acceleration</p>
+              </div>
+            </div>
+            
+            <script>
+              const now = new Date();
+              const options = { 
+                year: 'numeric', 
+                month: 'short', 
+                day: 'numeric', 
+                hour: '2-digit', 
+                minute: '2-digit',
+                timeZoneName: 'short'
+              };
+              document.getElementById('timestamp').textContent = now.toLocaleString('en-GB', options);
+            </script>
+          </body>
+          </html>
+          EOFHTML
+          
+          # Replace placeholders with actual values
+          sed -i "s|GITHUB_REF_NAME|${{ github.ref_name }}|g" gh-pages/index.html
+          sed -i "s|GITHUB_SHA_SHORT|${GITHUB_SHA:0:7}|g" gh-pages/index.html
+          sed -i "s|TEST_SCOPE|${{ needs.setup.outputs.test-scope }}|g" gh-pages/index.html
+          sed -i "s|GITHUB_RUN_ID|${{ github.run_id }}|g" gh-pages/index.html
+          sed -i "s|GITHUB_REPOSITORY|${{ github.repository }}|g" gh-pages/index.html
+
+      # 4. Setup GitHub Pages
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      # 5. Upload artifact for Pages
+      - name: Upload Pages Artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: gh-pages
+
+      # 6. Deploy to GitHub Pages
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
 
 # ============================================================================
 # STRATEGY SUMMARY

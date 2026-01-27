@@ -1,5 +1,6 @@
 import { expect } from '@playwright/test';
 import { test } from '../../fixtures';
+import { products, categories } from '../../data/demoblazeTestData';
 
 /**
  * ============================================================================
@@ -65,7 +66,7 @@ test.describe('@ui E2E Tests: Navigation & State Persistence', () => {
 
     // === Step 1: Filter by Laptops Category ===
     console.log('🔍 Step 1: Filtering to Laptops category...');
-    const productCount = await demoblazeHomePage.filterByCategory('Laptops');
+    const productCount = await demoblazeHomePage.filterByCategory(categories.laptops);
     console.log(`✅ Laptops category filtered: ${productCount} products loaded`);
 
     // === Step 2: Verify Products are Accessible ===
@@ -136,12 +137,12 @@ test.describe('@ui E2E Tests: Navigation & State Persistence', () => {
 
     // === Add Product to Cart ===
     console.log('📦 Step 1: Adding product and navigating to checkout...');
-    await demoblazeHomePage.addProductToCart('Samsung galaxy s6');
+    await demoblazeHomePage.addProductToCart(products.samsungGalaxyS6);
     console.log('✅ Product added to cart');
 
     // === Verify Persistence After Refresh ===
     console.log('📦 Step 2: Verifying product persists after refresh...');
-    const productPersists = await demoblazeHomePage.verifyProductPersistsAfterRefresh('Samsung galaxy s6');
+    const productPersists = await demoblazeHomePage.verifyProductPersistsAfterRefresh(products.samsungGalaxyS6);
 
     expect(productPersists).toBe(true);
     console.log('✅ State Persistency: Product remains in cart after refresh');
