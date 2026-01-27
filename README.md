@@ -27,6 +27,7 @@ This assessment demonstrates **strategic quality engineering** through a 3-pilla
 | **[📄 TESTSTRATEGY.md](TESTSTRATEGY.md)** | Strategic test plan & requirement mapping | ✅ Req 1: Planning & Architecture<br>✅ Req 2: Test Selection & Value-Based Rationale<br>✅ Req 3: Issue Log with Strategic Impact<br>✅ ROI Model: 62.5% efficiency gain |
 | **[📁 /governance](governance/)** | Deep-dive governance framework | [ROI_MODEL.md](governance/ROI_MODEL.md): Automation business case<br>[STANDARDS.md](governance/STANDARDS.md): Technical quality gates<br>[QUALITY_GATES.md](governance/QUALITY_GATES.md): Three Amigos & Gate 5 |
 | **[📁 /features/tests](features/tests/)** | Playwright test implementation | [/api](features/tests/api/): API contract validation<br>[/e2e-ui](features/tests/e2e-ui/): Revenue path E2E flows<br>[/accessibility](features/tests/accessibility/): WCAG 2.1 AA audits |
+| **[📄 GITHUB_PAGES_SETUP.md](GITHUB_PAGES_SETUP.md)** | GitHub Pages configuration guide | How to enable live test reporting<br>Step-by-step repository settings<br>Troubleshooting deployment issues |
 
 ---
 
@@ -64,12 +65,16 @@ npx playwright test --grep @regression # Nightly full suite (~45 mins)
 ### View Reports
 
 ```bash
-# Open HTML report with traces
+# Open local HTML report with traces
 npx playwright show-report
 
 # View accessibility violations
 cat a11y-results/a11y-audit-*.json
 ```
+
+**📊 Live Report:** [View on GitHub Pages](https://bastheboss7.github.io/playwright-hybrid-integration-API-UI-A11y/) (auto-updated on push/schedule)
+
+> 💡 **First time setup?** See [GITHUB_PAGES_SETUP.md](GITHUB_PAGES_SETUP.md) for instructions on enabling GitHub Pages
 
 ---
 
