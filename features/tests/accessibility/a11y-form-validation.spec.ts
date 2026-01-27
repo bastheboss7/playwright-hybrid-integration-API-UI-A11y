@@ -2,6 +2,7 @@ import { expect } from '@playwright/test';
 import { test } from '../../fixtures';
 import { AxeBuilder } from '@axe-core/playwright';
 import { AccessibilityAudit } from '../../utils/AccessibilityAudit';
+import { products, categories } from '../../data/demoblazeTestData';
 /**
  * ============================================================================
  * ACCESSIBILITY TEST LAYER: WCAG 2.1 AA Compliance
@@ -115,7 +116,7 @@ test.describe('@a11y Accessibility Tests: WCAG 2.1 AA Compliance', () => {
 
     // === Step 1: Setup - Navigate to Cart and Open Modal ===
     console.log('Step 1: Setting up Place Order modal...');
-    await demoblazeHomePage.addProductToCart('Samsung galaxy s6');
+    await demoblazeHomePage.addProductToCart(products.samsungGalaxyS6);
     await demoblazeHomePage.goToCart();
     await demoblazeCartPage.clickPlaceOrder();
     console.log('✅ Place Order modal opened');
@@ -173,7 +174,7 @@ test.describe('@a11y Accessibility Tests: WCAG 2.1 AA Compliance', () => {
 
     // === Step 1: Navigate and Verify Product Readability ===
     console.log('Step 1: Navigating to product listing...');
-    await demoblazeHomePage.filterCategoryAndVerifyProductReadability('Laptops');
+    await demoblazeHomePage.filterCategoryAndVerifyProductReadability(categories.laptops);
 
     // === Step 2: Inject Axe and Scan Listing ===
     console.log('Step 2: Running Axe accessibility scan...');
