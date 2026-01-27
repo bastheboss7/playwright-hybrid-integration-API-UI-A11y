@@ -509,7 +509,6 @@ jobs:
           # If no browser-specific report found, check for generic report
           if [ ! -f "gh-pages/data/index.html" ]; then
             echo "No browser reports found, creating fallback index..."
-            mkdir -p gh-pages/data
           fi
 
       # 3. Create custom landing page
