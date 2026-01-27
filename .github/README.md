@@ -10,6 +10,9 @@ Complete guide to setting up and troubleshooting GitHub Pages for live test repo
 ### Need Detailed Instructions?
 👉 **[../GITHUB_PAGES_SETUP.md](../GITHUB_PAGES_SETUP.md)** - Complete setup guide with explanations
 
+### Want to Deploy from Develop Branch?
+👉 **[DEPLOY_FROM_DEVELOP.md](DEPLOY_FROM_DEVELOP.md)** - Deploy from develop using manual dispatch
+
 ### Want to Understand How It Works?
 👉 **[DEPLOYMENT_FLOW.md](DEPLOYMENT_FLOW.md)** - Visual flow diagram and architecture
 
@@ -22,8 +25,9 @@ Complete guide to setting up and troubleshooting GitHub Pages for live test repo
 |------|---------|-------------|
 | **[PAGES_QUICK_START.md](PAGES_QUICK_START.md)** | Quick reference | First-time setup, just need the essentials |
 | **[GITHUB_PAGES_SETUP.md](../GITHUB_PAGES_SETUP.md)** | Complete guide | Want to understand deployment methods, need detailed steps |
+| **[DEPLOY_FROM_DEVELOP.md](DEPLOY_FROM_DEVELOP.md)** | Deploy from develop | Need to deploy from develop branch right now |
 | **[DEPLOYMENT_FLOW.md](DEPLOYMENT_FLOW.md)** | Architecture diagram | Want to see how workflow deploys, understand data flow |
-| **[BRANCH_DEPLOYMENT.md](BRANCH_DEPLOYMENT.md)** | Branch-based deployment | Understand which branches deploy, deploy from develop |
+| **[BRANCH_DEPLOYMENT.md](BRANCH_DEPLOYMENT.md)** | Branch deployment details | Understand which branches deploy, modify workflow |
 | **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** | Issue resolution | Something's not working, need to debug |
 
 ## 🚀 Quick Answer: Common Questions
