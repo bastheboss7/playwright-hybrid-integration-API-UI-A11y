@@ -24,6 +24,7 @@ import * as path from 'path';
 export class BasePage {
   private static readonly DEFAULT_RETRIES = 3;
   private static readonly SCREENSHOT_DIR = 'screenshots';
+  private static readonly MAX_FILENAME_LENGTH = 200;
 
   readonly page: Page;
   protected logger: TestLogger;
@@ -47,11 +48,11 @@ export class BasePage {
    * - Truncates to reasonable length
    */
   private sanitizeFilename(name: string): string {
-    // Remove any path separators and parent directory references
-    let sanitized = name.replace(/[\/\\\.\.]/g, '_');
+    // Remove parent directory sequences and path separators
+    let sanitized = name.replace(/\.\./g, '_').replace(/[\/\\]/g, '_');
     
     // Replace other unsafe filesystem characters
-    sanitized = sanitized.replace(/[<>:"|?*\x00-\x1f]/g, '_');
+    sanitized = sanitized.replace(/[<>:"\|?*\x00-\x1f]/g, '_');
     
     // Replace whitespace with underscores
     sanitized = sanitized.replace(/\s+/g, '_');
@@ -68,9 +69,8 @@ export class BasePage {
     }
     
     // Truncate to reasonable length (255 is typical filesystem limit, leave room for extension)
-    const maxLength = 200;
-    if (sanitized.length > maxLength) {
-      sanitized = sanitized.substring(0, maxLength);
+    if (sanitized.length > BasePage.MAX_FILENAME_LENGTH) {
+      sanitized = sanitized.substring(0, BasePage.MAX_FILENAME_LENGTH);
     }
     
     return sanitized;
