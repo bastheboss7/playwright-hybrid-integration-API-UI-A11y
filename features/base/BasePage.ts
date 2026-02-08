@@ -52,7 +52,7 @@ export class BasePage {
     let sanitized = name.replace(/\.\./g, '_').replace(/[\/\\]/g, '_');
     
     // Replace other unsafe filesystem characters
-    sanitized = sanitized.replace(/[<>:"\|?*\x00-\x1f]/g, '_');
+    sanitized = sanitized.replace(/[<>:"\\|?*\x00-\x1f]/g, '_');
     
     // Replace whitespace with underscores
     sanitized = sanitized.replace(/\s+/g, '_');
@@ -68,7 +68,7 @@ export class BasePage {
       sanitized = 'screenshot';
     }
     
-    // Truncate to reasonable length (255 is typical filesystem limit, leave room for extension)
+    // Truncate to reasonable length (200 chars allows room for .png extension within 255-char filesystem limits)
     if (sanitized.length > BasePage.MAX_FILENAME_LENGTH) {
       sanitized = sanitized.substring(0, BasePage.MAX_FILENAME_LENGTH);
     }
