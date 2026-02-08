@@ -37,12 +37,9 @@ export class BasePage {
   }
 
   private ensureScreenshotDirectory(): void {
-    // Note: fs.mkdirSync with recursive:true is idempotent and won't throw if directory exists
-    // In concurrent scenarios, multiple calls are safe - at most we have redundant checks
+    // Use static flag for efficiency - mkdirSync with recursive:true is idempotent
     if (!BasePage.screenshotDirCreated) {
-      if (!fs.existsSync(BasePage.SCREENSHOT_DIR)) {
-        fs.mkdirSync(BasePage.SCREENSHOT_DIR, { recursive: true });
-      }
+      fs.mkdirSync(BasePage.SCREENSHOT_DIR, { recursive: true });
       BasePage.screenshotDirCreated = true;
     }
   }
@@ -57,11 +54,11 @@ export class BasePage {
     // Remove leading path separators to prevent absolute paths
     let sanitized = name.replace(/^[\/\\]+/, '');
     
-    // Remove parent directory sequences and remaining path separators
+    // Remove parent directory sequences and path separators
     sanitized = sanitized.replace(/\.\./g, '_').replace(/[\/\\]/g, '_');
     
-    // Replace other unsafe filesystem characters (excluding backslash, already handled above)
-    sanitized = sanitized.replace(/[<>:"|?*\x00-\x1f]/g, '_');
+    // Replace unsafe filesystem characters (defensive: includes backslash even though handled above)
+    sanitized = sanitized.replace(/[<>:"\\|?*\x00-\x1f]/g, '_');
     
     // Replace whitespace with underscores
     sanitized = sanitized.replace(/\s+/g, '_');
