@@ -1,6 +1,8 @@
 import { Page, Locator } from '@playwright/test';
 import { TestLogger } from '../utils/TestLogger';
 import { WaitHelper } from '../utils/WaitHelper';
+import * as fs from 'fs';
+import * as path from 'path';
 
 /**
  * BasePage - Lean base class for page objects
@@ -29,6 +31,49 @@ export class BasePage {
   constructor(page: Page) {
     this.page = page;
     this.logger = new TestLogger(this.constructor.name);
+    this.ensureScreenshotDirectory();
+  }
+
+  private ensureScreenshotDirectory(): void {
+    if (!fs.existsSync(BasePage.SCREENSHOT_DIR)) {
+      fs.mkdirSync(BasePage.SCREENSHOT_DIR, { recursive: true });
+    }
+  }
+
+  /**
+   * Sanitize filename to prevent path traversal and ensure filesystem safety
+   * - Removes path separators and parent directory references
+   * - Replaces unsafe characters with underscores
+   * - Truncates to reasonable length
+   */
+  private sanitizeFilename(name: string): string {
+    // Remove any path separators and parent directory references
+    let sanitized = name.replace(/[\/\\\.\.]/g, '_');
+    
+    // Replace other unsafe filesystem characters
+    sanitized = sanitized.replace(/[<>:"|?*\x00-\x1f]/g, '_');
+    
+    // Replace whitespace with underscores
+    sanitized = sanitized.replace(/\s+/g, '_');
+    
+    // Collapse multiple underscores
+    sanitized = sanitized.replace(/_+/g, '_');
+    
+    // Trim underscores from start/end
+    sanitized = sanitized.replace(/^_+|_+$/g, '');
+    
+    // Ensure non-empty result
+    if (sanitized.length === 0) {
+      sanitized = 'screenshot';
+    }
+    
+    // Truncate to reasonable length (255 is typical filesystem limit, leave room for extension)
+    const maxLength = 200;
+    if (sanitized.length > maxLength) {
+      sanitized = sanitized.substring(0, maxLength);
+    }
+    
+    return sanitized;
   }
 
   // =========================================================================
@@ -83,16 +128,20 @@ export class BasePage {
   
   async screenshot(name: string, options?: { fullPage?: boolean }): Promise<Buffer> {
     const fullPage = options?.fullPage || false;
-    this.logger.info(`Taking screenshot: ${name}`);
+    const safeName = this.sanitizeFilename(name);
+    this.logger.info(`Taking screenshot: ${safeName}`);
     return await this.page.screenshot({ 
-      path: `${BasePage.SCREENSHOT_DIR}/${name}.png`, 
+      path: path.join(BasePage.SCREENSHOT_DIR, `${safeName}.png`), 
       fullPage 
     });
   }
 
   async screenshotElement(locator: Locator, name: string): Promise<Buffer> {
-    this.logger.info(`Taking element screenshot: ${name}`);
-    return await locator.screenshot({ path: `${BasePage.SCREENSHOT_DIR}/${name}.png` });
+    const safeName = this.sanitizeFilename(name);
+    this.logger.info(`Taking element screenshot: ${safeName}`);
+    return await locator.screenshot({ 
+      path: path.join(BasePage.SCREENSHOT_DIR, `${safeName}.png`) 
+    });
   }
 
   // =========================================================================
