@@ -25,6 +25,7 @@ export class BasePage {
   private static readonly DEFAULT_RETRIES = 3;
   private static readonly SCREENSHOT_DIR = 'screenshots';
   private static readonly MAX_FILENAME_LENGTH = 200;
+  private static screenshotDirCreated = false;
 
   readonly page: Page;
   protected logger: TestLogger;
@@ -36,8 +37,9 @@ export class BasePage {
   }
 
   private ensureScreenshotDirectory(): void {
-    if (!fs.existsSync(BasePage.SCREENSHOT_DIR)) {
+    if (!BasePage.screenshotDirCreated && !fs.existsSync(BasePage.SCREENSHOT_DIR)) {
       fs.mkdirSync(BasePage.SCREENSHOT_DIR, { recursive: true });
+      BasePage.screenshotDirCreated = true;
     }
   }
 
@@ -51,8 +53,8 @@ export class BasePage {
     // Remove parent directory sequences and path separators
     let sanitized = name.replace(/\.\./g, '_').replace(/[\/\\]/g, '_');
     
-    // Replace other unsafe filesystem characters
-    sanitized = sanitized.replace(/[<>:"\\|?*\x00-\x1f]/g, '_');
+    // Replace other unsafe filesystem characters (excluding backslash, already handled above)
+    sanitized = sanitized.replace(/[<>:"|?*\x00-\x1f]/g, '_');
     
     // Replace whitespace with underscores
     sanitized = sanitized.replace(/\s+/g, '_');
