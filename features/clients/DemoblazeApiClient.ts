@@ -1,5 +1,6 @@
 import { Page, expect } from '@playwright/test';
 import { BaseApiClient } from './BaseApiClient';
+import { ApiConstants } from './ApiConstants';
 
 /**
  * DemoblazeApiClient - Business-specific API validation for demoblaze.com
@@ -9,6 +10,8 @@ import { BaseApiClient } from './BaseApiClient';
  * Maintains SOC: BaseApiClient = infrastructure, DemoblazeApiClient = business domain
  */
 export class DemoblazeApiClient extends BaseApiClient {
+  private static readonly DEFAULT_RESPONSE_TIME_LIMIT_MS = ApiConstants.limits.defaultResponseTimeMs;
+
   constructor(baseUrl: string) {
     super(baseUrl);
   }
@@ -60,8 +63,8 @@ export class DemoblazeApiClient extends BaseApiClient {
    * @param limitMs - Maximum acceptable response time in milliseconds (default: 2000)
    * @throws AssertionError if response time exceeds limit
    */
-  async verifyResponseTime(page: Page, limitMs = 2000): Promise<void> {
-    const elapsed = await this.measureResponseTime(page, '/entries');
+  async verifyResponseTime(page: Page, limitMs = DemoblazeApiClient.DEFAULT_RESPONSE_TIME_LIMIT_MS): Promise<void> {
+    const elapsed = await this.measureResponseTime(page, ApiConstants.paths.entries);
     expect(elapsed).toBeLessThan(limitMs);
   }
 
@@ -76,9 +79,9 @@ export class DemoblazeApiClient extends BaseApiClient {
    * @throws AssertionError if response is 200 or not in expected error range
    */
   async verifyInvalidEndpointError(page: Page): Promise<void> {
-    const res = await page.request.get(`${this.baseUrl}/invalid-endpoint`, { ignoreHTTPSErrors: true });
+    const res = await page.request.get(`${this.baseUrl}${ApiConstants.paths.invalidEndpoint}`, { ignoreHTTPSErrors: true });
     expect(res.status()).not.toBe(200);
-    expect([404, 400, 405]).toContain(res.status());
+    expect(ApiConstants.status.validErrorStatuses).toContain(res.status());
   }
 
   /**
@@ -99,7 +102,7 @@ export class DemoblazeApiClient extends BaseApiClient {
 
     const body = await res.text();
     const responseSize = Buffer.byteLength(body, 'utf8');
-    expect(responseSize).toBeLessThan(1000000);
+    expect(responseSize).toBeLessThan(ApiConstants.limits.maxResponseBytes);
   }
 }
 

@@ -2,8 +2,10 @@ import { test as base } from '@playwright/test';
 import { DemoblazeHomePage } from './pages/DemoblazeHomePage';
 import { DemoblazeProductPage } from './pages/DemoblazeProductPage';
 import { DemoblazeCartPage } from './pages/DemoblazeCartPage';
+import { DemoblazeLocators } from './locators/DemoblazeLocators';
 import { AccessibilityAudit } from './utils/AccessibilityAudit';
 import { DemoblazeApiClient } from './clients/DemoblazeApiClient';
+import { TestLogger } from './utils/TestLogger';
 
 /**
  * Demoblaze Test Fixtures
@@ -19,28 +21,40 @@ import { DemoblazeApiClient } from './clients/DemoblazeApiClient';
  */
 
 type DemoblazeFixtures = {
+  locators: DemoblazeLocators;
   demoblazeHomePage: DemoblazeHomePage;
   demoblazeProductPage: DemoblazeProductPage;
   demoblazeCartPage: DemoblazeCartPage;
   a11yAudit: AccessibilityAudit;
   apiClient: DemoblazeApiClient;
+  logger: TestLogger;
 };
 
 export const test = base.extend<DemoblazeFixtures>({
   /**
+   * DemoblazeLocators Facade Fixture
+   * 
+   * Single injection point that aggregates page-specific locators.
+   */
+  locators: async ({ page }, use) => {
+    const locators = new DemoblazeLocators(page);
+    await use(locators);
+  },
+
+  /**
    * DemoblazeHomePage Fixture
    * 
    * Automatically:
-   * 1. Creates page object instance
-   * 2. Navigates to home page (setUp)
+   * 1. Creates page object instance with injected locators
+   * 2. Navigates to home page (setUp) - fixture responsibility, not page object
    * 3. Provides to test via fixture injection
    * 4. Cleans up after test (tearDown)
    */
-  demoblazeHomePage: async ({ page }, use) => {
-    const homePage = new DemoblazeHomePage(page);
-    // Implicit setup: Navigate to home page
+  demoblazeHomePage: async ({ page, locators }, use) => {
+    const homePage = new DemoblazeHomePage(page, locators);
+    // Fixture-level navigation (enterprise pattern: fixtures own setup)
     const baseUrl = process.env.BASE_URL || 'https://www.demoblaze.com/index.html';
-    await homePage.goto(baseUrl);
+    await page.goto(baseUrl, { waitUntil: 'domcontentloaded' });
     // Provide to test
     await use(homePage);
     // Implicit teardown: Test complete, page closes automatically
@@ -50,12 +64,12 @@ export const test = base.extend<DemoblazeFixtures>({
    * DemoblazeProductPage Fixture
    * 
    * Automatically:
-   * 1. Creates page object instance
+   * 1. Creates page object instance with injected locators
    * 2. Provides to test via fixture injection
    * 3. Cleans up after test (tearDown)
    */
-  demoblazeProductPage: async ({ page }, use) => {
-    const productPage = new DemoblazeProductPage(page);
+  demoblazeProductPage: async ({ page, locators }, use) => {
+    const productPage = new DemoblazeProductPage(page, locators);
     // Provide to test
     await use(productPage);
     // Implicit teardown: Test complete
@@ -65,12 +79,12 @@ export const test = base.extend<DemoblazeFixtures>({
    * DemoblazeCartPage Fixture
    * 
    * Automatically:
-   * 1. Creates page object instance
+   * 1. Creates page object instance with injected locators
    * 2. Provides to test via fixture injection
    * 3. Cleans up after test (tearDown)
    */
-  demoblazeCartPage: async ({ page }, use) => {
-    const cartPage = new DemoblazeCartPage(page);
+  demoblazeCartPage: async ({ page, locators }, use) => {
+    const cartPage = new DemoblazeCartPage(page, locators);
     // Provide to test
     await use(cartPage);
     // Implicit teardown: Test complete
@@ -113,6 +127,17 @@ export const test = base.extend<DemoblazeFixtures>({
     // Provide to test
     await use(client);
     // No cleanup needed (stateless)
+  },
+
+  /**
+   * TestLogger Fixture (Cross-cutting logging)
+   * 
+   * Provides a shared logger instance for each test.
+   * Centralizes logging configuration and supports test-level context.
+   */
+  logger: async ({}, use, testInfo) => {
+    const logger = new TestLogger(testInfo.title);
+    await use(logger);
   },
 });
 

@@ -37,9 +37,11 @@ test.describe('@api @smoke API Tests: Product Catalog Integration', () => {
    * - Early detection of API contract violations
    * - Prevents cascading test failures from API issues
    */
-  test('@api Product Catalog Endpoint Returns Valid Data', async ({ page, apiClient }) => {
-    console.log('🔍 API Test: Fetch Product Catalog');
-    await apiClient.verifyProductCatalog(page);
+  test('@api Product Catalog Endpoint Returns Valid Data', async ({ page, apiClient, logger }) => {
+    await test.step('API Test: Fetch Product Catalog', async () => {
+      logger.step('API Test: Fetch Product Catalog');
+      await apiClient.verifyProductCatalog(page);
+    });
   });
 
   /**
@@ -54,9 +56,11 @@ test.describe('@api @smoke API Tests: Product Catalog Integration', () => {
    * - Prevents poor user experience
    * - SLA compliance validation
    */
-  test('@api Product Catalog API Response Time < 2 Seconds', async ({ page, apiClient }) => {
-    console.log('⏱️  API Test: Response Time Performance');
-    await apiClient.verifyResponseTime(page, 2000);
+  test('@api Product Catalog API Response Time < 2 Seconds', async ({ page, apiClient, logger }) => {
+    await test.step('API Test: Response Time Performance', async () => {
+      logger.step('API Test: Response Time Performance');
+      await apiClient.verifyResponseTime(page, 2000);
+    });
   });
 
   /**
@@ -71,9 +75,11 @@ test.describe('@api @smoke API Tests: Product Catalog Integration', () => {
    * - Prevents information leakage in error messages
    * - Improves API reliability
    */
-  test('@api API Returns Proper Error for Invalid Endpoint', async ({ page, apiClient }) => {
-    console.log('🔍 API Test: Error Handling - Invalid Endpoint');
-    await apiClient.verifyInvalidEndpointError(page);
+  test('@api API Returns Proper Error for Invalid Endpoint', async ({ page, apiClient, logger }) => {
+    await test.step('API Test: Error Handling - Invalid Endpoint', async () => {
+      logger.step('API Test: Error Handling - Invalid Endpoint');
+      await apiClient.verifyInvalidEndpointError(page);
+    });
   });
 
   /**
@@ -88,9 +94,11 @@ test.describe('@api @smoke API Tests: Product Catalog Integration', () => {
    * - Checks security headers (prevents information leakage)
    * - Ensures API standards compliance
    */
-  test('@api API Response Headers Are Valid', async ({ page, apiClient }) => {
-    console.log('🔍 API Test: Response Headers Validation');
-    await apiClient.verifyResponseHeaders(page);
+  test('@api API Response Headers Are Valid', async ({ page, apiClient, logger }) => {
+    await test.step('API Test: Response Headers Validation', async () => {
+      logger.step('API Test: Response Headers Validation');
+      await apiClient.verifyResponseHeaders(page);
+    });
   });
 });
 

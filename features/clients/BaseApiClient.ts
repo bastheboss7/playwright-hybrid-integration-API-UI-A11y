@@ -1,4 +1,5 @@
 import { Page, APIResponse, expect } from '@playwright/test';
+import { ApiConstants } from './ApiConstants';
 
 /**
  * BaseApiClient - Generic API infrastructure layer
@@ -27,7 +28,7 @@ export class BaseApiClient {
    * @returns APIResponse from /entries endpoint
    */
   async fetchEntries(page: Page): Promise<APIResponse> {
-    return await this.fetch(page, '/entries');
+    return await this.fetch(page, ApiConstants.paths.entries);
   }
 
   /**
@@ -37,7 +38,7 @@ export class BaseApiClient {
    */
   async expectStatusOk(res: APIResponse) {
     expect(res.ok()).toBe(true);
-    expect(res.status()).toBe(200);
+    expect(res.status()).toBe(ApiConstants.status.ok);
   }
 
   /**
@@ -72,7 +73,7 @@ export class BaseApiClient {
    */
   async expectHeaderContentTypeJson(res: APIResponse) {
     const contentType = res.headers()['content-type'] || '';
-    expect(contentType).toContain('application/json');
+    expect(contentType).toContain(ApiConstants.headers.jsonContentType);
   }
 }
 

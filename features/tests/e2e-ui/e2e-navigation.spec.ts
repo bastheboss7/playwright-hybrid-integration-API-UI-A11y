@@ -1,6 +1,6 @@
 import { expect } from '@playwright/test';
 import { test } from '../../fixtures';
-import { products, categories } from '../../data/demoblazeTestData';
+import { testData } from '../../data/demoblazeTestData';
 
 /**
  * ============================================================================
@@ -27,6 +27,7 @@ import { products, categories } from '../../data/demoblazeTestData';
  */
 
 test.describe('@ui E2E Tests: Navigation & State Persistence', () => {
+  const { products, categories } = testData.home;
 
   // Setup persistent dialog handler for all tests in this suite
   test.beforeEach(async ({ page }) => {
@@ -61,18 +62,23 @@ test.describe('@ui E2E Tests: Navigation & State Persistence', () => {
   test('@smoke @ui Asynchronous Navigation: Laptops Category Filter', async ({
     page,
     demoblazeHomePage,
+    logger,
   }) => {
-    console.log('📌 E2E Test: Asynchronous Category Navigation');
+    logger.step('E2E Test: Asynchronous Category Navigation');
 
     // === Step 1: Filter by Laptops Category ===
-    console.log('🔍 Step 1: Filtering to Laptops category...');
-    const productCount = await demoblazeHomePage.filterByCategory(categories.laptops);
-    console.log(`✅ Laptops category filtered: ${productCount} products loaded`);
+    await test.step('Step 1: Filter to Laptops category', async () => {
+      logger.info('Filtering to Laptops category');
+      const productCount = await demoblazeHomePage.filterByCategory(categories.laptops);
+      logger.info(`Laptops category filtered: ${productCount} products loaded`);
+    });
 
     // === Step 2: Verify Products are Accessible ===
-    console.log('♿ Step 2: Verifying product accessibility...');
-    const firstProductText = await demoblazeHomePage.getFirstProductText();
-    console.log(`✅ Products are accessible: "${firstProductText?.substring(0, 40)}..."`);
+    await test.step('Step 2: Verify product accessibility', async () => {
+      logger.info('Verifying product accessibility');
+      const firstProductText = await demoblazeHomePage.getFirstProductText();
+      logger.info(`Products are accessible: "${firstProductText?.substring(0, 40)}..."`);
+    });
 
     // GOVERNANCE NOTE: This test validates category management accountability
     // (Pillar 1: Filter State Audit Trail)
@@ -93,11 +99,15 @@ test.describe('@ui E2E Tests: Navigation & State Persistence', () => {
    */
   test('@ui Category Navigation: Sequential Filter Changes', async ({
     demoblazeHomePage,
+    logger,
   }) => {
-    console.log('📌 E2E Test: Sequential Category Navigation');
+    logger.step('E2E Test: Sequential Category Navigation');
 
     // === Test sequential category navigation ===
-    await demoblazeHomePage.testSequentialCategoryNavigation();
+    await test.step('Run sequential category navigation', async () => {
+      logger.info('Running sequential category navigation');
+      await demoblazeHomePage.testSequentialCategoryNavigation();
+    });
 
     // GOVERNANCE NOTE: This test validates filter state management
     // (Pillar 1: State Management Audit Trail)
@@ -130,22 +140,25 @@ test.describe('@ui E2E Tests: Navigation & State Persistence', () => {
   test('@regression @ui State Persistency: Cart Survives Page Refresh', async ({
     page,
     demoblazeHomePage,
+    logger,
   }) => {
-    console.log(
-      '🔄 E2E Test: State Persistency - Cart contents survive page refresh'
-    );
+    logger.step('E2E Test: State Persistency - Cart contents survive page refresh');
 
     // === Add Product to Cart ===
-    console.log('📦 Step 1: Adding product and navigating to checkout...');
-    await demoblazeHomePage.addProductToCart(products.samsungGalaxyS6);
-    console.log('✅ Product added to cart');
+    await test.step('Step 1: Add product and navigate to checkout', async () => {
+      logger.info('Adding product and navigating to checkout');
+      await demoblazeHomePage.addProductToCart(products.samsungGalaxyS6);
+      logger.info('Product added to cart');
+    });
 
     // === Verify Persistence After Refresh ===
-    console.log('📦 Step 2: Verifying product persists after refresh...');
-    const productPersists = await demoblazeHomePage.verifyProductPersistsAfterRefresh(products.samsungGalaxyS6);
+    const productPersists = await test.step('Step 2: Verify product persists after refresh', async () => {
+      logger.info('Verifying product persists after refresh');
+      return await demoblazeHomePage.verifyProductPersistsAfterRefresh(products.samsungGalaxyS6);
+    });
 
     expect(productPersists).toBe(true);
-    console.log('✅ State Persistency: Product remains in cart after refresh');
+    logger.info('State Persistency: Product remains in cart after refresh');
 
     // GOVERNANCE NOTE: This test validates session state accountability
     // (Pillar 1: Browser State Audit Trail)
@@ -166,25 +179,30 @@ test.describe('@ui E2E Tests: Navigation & State Persistence', () => {
   test('@ui Cart Management: Add Multiple Items', async ({
     page,
     demoblazeHomePage,
+    logger,
   }) => {
-    console.log('🛒 E2E Test: Cart Management - Multiple Items');
+    logger.step('E2E Test: Cart Management - Multiple Items');
 
     // === Add Multiple Products ===
-    console.log('Step 1: Adding multiple products to cart...');
-    await demoblazeHomePage.addMultipleProductsToCart([
-      'Samsung galaxy s6',
-      'Nokia lumia 1520'
-    ]);
+    await test.step('Step 1: Add multiple products to cart', async () => {
+      logger.info('Adding multiple products to cart');
+      await demoblazeHomePage.addMultipleProductsToCart([
+        products.samsungGalaxyS6,
+        products.nokiaLumia1520
+      ]);
+    });
 
     // === Verify All Products in Cart ===
-    console.log('Step 2: Verifying cart contents...');
-    const allProductsPresent = await demoblazeHomePage.verifyMultipleProductsInCart([
-      'Samsung galaxy s6',
-      'Nokia lumia 1520'
-    ]);
+    const allProductsPresent = await test.step('Step 2: Verify cart contents', async () => {
+      logger.info('Verifying cart contents');
+      return await demoblazeHomePage.verifyMultipleProductsInCart([
+        products.samsungGalaxyS6,
+        products.nokiaLumia1520
+      ]);
+    });
 
     expect(allProductsPresent).toBe(true);
-    console.log('✅ Cart Management: Multiple items verified');
+    logger.info('Cart Management: Multiple items verified');
 
     // GOVERNANCE NOTE: This test validates cart state management
     // (Pillar 1: Cart State Audit Trail)

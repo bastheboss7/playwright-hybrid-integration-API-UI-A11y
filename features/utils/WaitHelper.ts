@@ -1,11 +1,18 @@
 export class WaitHelper {
+  static readonly DEFAULT_TIMEOUT_MS = 5000;
+  static readonly DEFAULT_POLL_INTERVAL_MS = 100;
+  static readonly SHORT_TIMEOUT_MS = 3000;
+  static readonly LONG_TIMEOUT_MS = 10000;
+  static readonly SLOW_POLL_INTERVAL_MS = 150;
+  static readonly RETRY_DELAY_MS = 500;
+
   /**
    * Polls a condition until it returns true or times out.
    */
   static async waitForCondition(
     condition: () => Promise<boolean>,
-    timeoutMs: number = 5000,
-    pollIntervalMs: number = 100
+    timeoutMs: number = WaitHelper.DEFAULT_TIMEOUT_MS,
+    pollIntervalMs: number = WaitHelper.DEFAULT_POLL_INTERVAL_MS
   ): Promise<void> {
     const start = Date.now();
     while (Date.now() - start < timeoutMs) {

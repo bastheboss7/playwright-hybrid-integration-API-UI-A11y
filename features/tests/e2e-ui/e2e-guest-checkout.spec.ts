@@ -1,6 +1,6 @@
 import { expect } from '@playwright/test';
 import { test } from '../../fixtures';
-import { products, checkoutData } from '../../data/demoblazeTestData';
+import { testData } from '../../data/demoblazeTestData';
 
 /**
  * ============================================================================
@@ -27,6 +27,8 @@ import { products, checkoutData } from '../../data/demoblazeTestData';
  */
 
 test.describe('@ui E2E Tests: Guest Checkout Flow', () => {
+  const { products } = testData.home;
+  const { checkoutData } = testData.cart;
 
   // Setup persistent dialog handler for all tests in this suite
   test.beforeEach(async ({ page }) => {
@@ -60,57 +62,56 @@ test.describe('@ui E2E Tests: Guest Checkout Flow', () => {
    * - Regulatory: High (PCI compliance, audit trail)
    */
   test('@smoke @ui Revenue Path: Complete Guest Checkout Transaction', async ({
-    page,
     demoblazeHomePage,
     demoblazeCartPage,
+    logger,
   }) => {
-    console.log('💰 E2E Test: Complete Revenue Path (Add to Cart → Place Order)');
+    await test.step('Step 1: Select product', async () => {
+      logger.info('Selecting product');
+      await demoblazeHomePage.clickProduct(products.samsungGalaxyS6);
+    });
 
-    // === Step 1: Select Product ===
-    console.log('📦 Step 1: Selecting product...');
-    await demoblazeHomePage.clickProduct(products.samsungGalaxyS6);
-    console.log('✅ Product selected');
+    await test.step('Step 2: Add to cart', async () => {
+      logger.info('Adding product to cart');
+      await demoblazeHomePage.addToCart();
+    });
 
-    // === Step 2: Add to Cart ===
-    console.log('🛒 Step 2: Adding to cart...');
-    await demoblazeHomePage.addToCart();
+    await test.step('Step 3: Navigate to cart', async () => {
+      logger.info('Navigating to cart');
+      await demoblazeHomePage.goToCart();
+    });
 
-    console.log('✅ Product added to cart');
+    await test.step('Step 4: Verify product in cart', async () => {
+      logger.info('Verifying product in cart');
+      await demoblazeCartPage.verifyCartItem(products.samsungGalaxyS6);
+    });
 
-    // === Step 3: Navigate to Cart ===
-    console.log('🛍️  Step 3: Navigating to cart...');
-    await demoblazeHomePage.goToCart();
+    await test.step('Step 5: Open Place Order modal', async () => {
+      logger.info('Opening Place Order modal');
+      await demoblazeCartPage.clickPlaceOrder();
+    });
 
-    // === Step 4: Verify Product in Cart ===
-    await demoblazeCartPage.verifyCartItem(products.samsungGalaxyS6);
-    console.log('✅ Product verified in cart');
+    await test.step('Step 6: Fill guest checkout form', async () => {
+      logger.info('Filling checkout form');
+      await demoblazeCartPage.fillOrderForm(
+        checkoutData.validOrder.name,
+        checkoutData.validOrder.country,
+        checkoutData.validOrder.city,
+        checkoutData.validOrder.creditCard,
+        checkoutData.validOrder.month,
+        checkoutData.validOrder.year
+      );
+    });
 
-    // === Step 5: Click Place Order ===
-    console.log('📋 Step 5: Opening Place Order modal...');
-    await demoblazeCartPage.clickPlaceOrder();
+    await test.step('Step 7: Submit order', async () => {
+      logger.info('Submitting order');
+      await demoblazeCartPage.completePurchase();
+    });
 
-    console.log('✅ Place Order modal opened');
-
-    // === Step 6: Fill Guest Checkout Form ===
-    console.log('📝 Step 6: Filling checkout form...');
-    await demoblazeCartPage.fillOrderForm(
-      checkoutData.validOrder.name,
-      checkoutData.validOrder.country,
-      checkoutData.validOrder.city,
-      checkoutData.validOrder.creditCard,
-      checkoutData.validOrder.month,
-      checkoutData.validOrder.year
-    );
-    console.log('✅ Guest Checkout Form: All fields completed');
-
-    // === Step 7: Submit Order ===
-    console.log('✨ Step 7: Submitting order...');
-    await demoblazeCartPage.completePurchase();
-
-    // === Step 8: Verify Purchase Success ===
-    console.log('🎉 Step 8: Verifying success...');
-    await demoblazeCartPage.verifyPurchaseSuccess();
-    console.log('✅ Purchase Successful: Order confirmed');
+    await test.step('Step 8: Verify purchase success', async () => {
+      logger.info('Verifying purchase success');
+      await demoblazeCartPage.verifyPurchaseSuccess();
+    });
 
     // GOVERNANCE NOTE: This test validates end-to-end transaction integrity
     // (Pillar 1: Revenue Transaction Audit Trail)
@@ -131,21 +132,24 @@ test.describe('@ui E2E Tests: Guest Checkout Flow', () => {
    * - Prevents bad data in order system
    */
   test('@ui Guest Checkout: Form Validation on Empty Submission', async ({
-    page,
     demoblazeHomePage,
     demoblazeCartPage,
+    logger,
   }) => {
-    console.log('📋 E2E Test: Form Validation - Empty Submission');
+    await test.step('Setup: Add product and navigate to checkout', async () => {
+      logger.info('Setup: add product and navigate to checkout');
+      await demoblazeHomePage.addProductAndNavigateToCheckout(products.samsungGalaxyS6);
+    });
 
-    // === Setup: Add product and navigate to checkout ===
-    await demoblazeHomePage.addProductAndNavigateToCheckout(products.samsungGalaxyS6);
+    await test.step('Open Place Order modal', async () => {
+      logger.info('Opening Place Order modal');
+      await demoblazeCartPage.clickPlaceOrder();
+    });
 
-    // === Open Place Order modal ===
-    await demoblazeCartPage.clickPlaceOrder();
-
-    // === Test: Submit empty form and verify validation ===
-    console.log('🔍 Attempting to submit empty form...');
-    const { validationWorks, alertMessage } = await demoblazeCartPage.submitEmptyCheckoutAndVerifyValidation();
+    const { validationWorks, alertMessage } = await test.step('Submit empty form and capture validation', async () => {
+      logger.info('Submitting empty form to validate error handling');
+      return await demoblazeCartPage.submitEmptyCheckoutAndVerifyValidation();
+    });
 
     await test.step('Error handling: alert displayed to user', async () => {
       expect(alertMessage).toBeTruthy();
@@ -153,7 +157,7 @@ test.describe('@ui E2E Tests: Guest Checkout Flow', () => {
     });
 
     await test.step('Form validation: modal remains open (submission blocked)', async () => {
-      await expect(demoblazeCartPage.locators.orderModal).toBeVisible();
+      await expect(demoblazeCartPage.orderModal).toBeVisible();
       expect(validationWorks).toBe(true);
     });
 

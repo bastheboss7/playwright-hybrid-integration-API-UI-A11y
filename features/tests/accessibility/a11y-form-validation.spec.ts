@@ -1,8 +1,5 @@
-import { expect } from '@playwright/test';
 import { test } from '../../fixtures';
-import { AxeBuilder } from '@axe-core/playwright';
-import { AccessibilityAudit } from '../../utils/AccessibilityAudit';
-import { products, categories } from '../../data/demoblazeTestData';
+import { testData } from '../../data/demoblazeTestData';
 /**
  * ============================================================================
  * ACCESSIBILITY TEST LAYER: WCAG 2.1 AA Compliance
@@ -29,6 +26,7 @@ import { products, categories } from '../../data/demoblazeTestData';
  */
 
 test.describe('@a11y Accessibility Tests: WCAG 2.1 AA Compliance', () => {
+  const { products, categories } = testData.home;
 
   // Setup persistent dialog handler for all tests in this suite
   test.beforeEach(async ({ page }) => {
@@ -60,29 +58,18 @@ test.describe('@a11y Accessibility Tests: WCAG 2.1 AA Compliance', () => {
    * RISK LEVEL: 🔴 HIGH (5/10) - Regulatory impact, Low probability
    */
   test('@a11y @smoke Accessibility Audit: Homepage - WCAG 2.1 AA', async ({
-    page,
+    a11yAudit,
+    logger,
   }, testInfo) => {
-    console.log('♿ Accessibility Test: Homepage A11y Audit');
+    await test.step('Run WCAG 2.1 AA audit (Homepage)', async () => {
+      logger.info('Running WCAG 2.1 AA audit (Homepage)');
+      await a11yAudit.auditPage('Homepage');
+    });
 
-    // === Run Axe Accessibility Audit ===
-    console.log('Step 1: Running WCAG 2.1 AA audit...');
-    
-    const results = await new AxeBuilder({ page }).analyze();
-    
-    console.log('✅ Accessibility audit completed');
-
-    // === Log Results for Compliance ===
-    console.log('Step 2: Analyzing results...');
-    const audit = new AccessibilityAudit(page);
-    audit.logAuditResults(results, 'Homepage');
-
-    // === Attach violations to report ===
-    if (results.violations.length > 0) {
-      await testInfo.attach('accessibility-violations', {
-        body: JSON.stringify(results.violations, null, 2),
-        contentType: 'application/json'
-      });
-    }
+    await test.step('Attach accessibility violations (if any)', async () => {
+      logger.info('Attaching accessibility violations (Homepage)');
+      await a11yAudit.attachViolations(testInfo, 'Homepage');
+    });
 
     // GOVERNANCE NOTE: This test validates accessibility compliance
     // (Pillar 1: Accessibility Audit Trail for Companies House)
@@ -108,44 +95,43 @@ test.describe('@a11y Accessibility Tests: WCAG 2.1 AA Compliance', () => {
    * 5. Test keyboard navigation (tab order)
    */
   test('@a11y @regression Accessibility Audit: Place Order Modal - Form Labels & Navigation', async ({
-    page,
     demoblazeHomePage,
     demoblazeCartPage,
+    a11yAudit,
+    logger,
   }, testInfo) => {
-    console.log('♿ Accessibility Test: Place Order Modal A11y Audit');
+    await test.step('Setup: Open Place Order modal', async () => {
+      logger.info('Opening Place Order modal');
+      await demoblazeHomePage.addProductToCart(products.samsungGalaxyS6);
+      await demoblazeHomePage.goToCart();
+      await demoblazeCartPage.clickPlaceOrder();
+    });
 
-    // === Step 1: Setup - Navigate to Cart and Open Modal ===
-    console.log('Step 1: Setting up Place Order modal...');
-    await demoblazeHomePage.addProductToCart(products.samsungGalaxyS6);
-    await demoblazeHomePage.goToCart();
-    await demoblazeCartPage.clickPlaceOrder();
-    console.log('✅ Place Order modal opened');
+    await test.step('Verify form accessibility (labels)', async () => {
+      logger.info('Verifying form accessibility (labels)');
+      await demoblazeCartPage.verifyFormAccessibilityAndLog();
+    });
 
-    // === Step 2: Verify Form Labels (Accessibility) ===
-    console.log('Step 2: Verifying form accessibility...');
-    await demoblazeCartPage.verifyFormAccessibilityAndLog();
+    await test.step('Check accessibility-first locator compliance', async () => {
+      logger.info('Checking accessibility-first locator compliance');
+      const missingLabels = await demoblazeCartPage.checkOrderFormLabelCompliance();
+      await a11yAudit.attachLocatorFallbacks(testInfo, missingLabels);
+    });
 
-    // === Step 3: Run Axe Accessibility Scan First (before modal interaction) ===
-    console.log('Step 3: Running Axe accessibility scan...');
-    
-    const modalResults = await new AxeBuilder({ page })
-      .include('.modal')
-      .analyze();
+    await test.step('Run Axe accessibility scan (modal)', async () => {
+      logger.info('Running Axe accessibility scan (modal)');
+      await a11yAudit.auditPageWithInclude('Place Order Modal', '.modal');
+    });
 
-    const audit = new AccessibilityAudit(page);
-    audit.logAuditResults(modalResults, 'Place Order Modal');
+    await test.step('Attach accessibility violations (if any)', async () => {
+      logger.info('Attaching accessibility violations (modal)');
+      await a11yAudit.attachViolations(testInfo, 'Place Order Modal');
+    });
 
-    // === Attach violations to report ===
-    if (modalResults.violations.length > 0) {
-      await testInfo.attach('accessibility-violations', {
-        body: JSON.stringify(modalResults.violations, null, 2),
-        contentType: 'application/json'
-      });
-    }
-
-    // === Step 4: Verify Keyboard Navigation ===
-    console.log('Step 4: Testing keyboard navigation...');
-    await demoblazeCartPage.testKeyboardNavigationAndLog();
+    await test.step('Verify keyboard navigation (tab order)', async () => {
+      logger.info('Verifying keyboard navigation (tab order)');
+      await demoblazeCartPage.testKeyboardNavigationAndLog();
+    });
 
     // Note: Step 5 (Error Handling) removed to prevent modal closure issues
     // The error handling validation is already covered in guest checkout tests
@@ -167,31 +153,24 @@ test.describe('@a11y Accessibility Tests: WCAG 2.1 AA Compliance', () => {
    * - Supports inclusive shopping experience
    */
   test('@a11y @regression Accessibility Audit: Product Listing Cards', async ({
-    page,
     demoblazeHomePage,
+    a11yAudit,
+    logger,
   }, testInfo) => {
-    console.log('♿ Accessibility Test: Product Listing A11y Audit');
+    await test.step('Navigate to product listing and verify readability', async () => {
+      logger.info('Navigating to product listing and verifying readability');
+      await demoblazeHomePage.filterCategoryAndVerifyProductReadability(categories.laptops);
+    });
 
-    // === Step 1: Navigate and Verify Product Readability ===
-    console.log('Step 1: Navigating to product listing...');
-    await demoblazeHomePage.filterCategoryAndVerifyProductReadability(categories.laptops);
+    await test.step('Run Axe accessibility scan (listing)', async () => {
+      logger.info('Running Axe accessibility scan (listing)');
+      await a11yAudit.auditPage('Product Listing');
+    });
 
-    // === Step 2: Inject Axe and Scan Listing ===
-    console.log('Step 2: Running Axe accessibility scan...');
-    
-    const listingResults = await new AxeBuilder({ page })
-      .analyze();
-
-    const audit = new AccessibilityAudit(page);
-    audit.logAuditResults(listingResults, 'Product Listing');
-
-    // === Attach violations to report ===
-    if (listingResults.violations.length > 0) {
-      await testInfo.attach('accessibility-violations', {
-        body: JSON.stringify(listingResults.violations, null, 2),
-        contentType: 'application/json'
-      });
-    }
+    await test.step('Attach accessibility violations (if any)', async () => {
+      logger.info('Attaching accessibility violations (listing)');
+      await a11yAudit.attachViolations(testInfo, 'Product Listing');
+    });
 
     // GOVERNANCE NOTE: This test validates product listing accessibility
     // (Pillar 1: Product Discovery Accessibility Audit Trail)

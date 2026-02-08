@@ -1,5 +1,6 @@
-import { Page, Locator, expect } from '@playwright/test';
+import { Page, expect } from '@playwright/test';
 import { DemoblazeLocators } from '../locators/DemoblazeLocators';
+import { DemoblazeCartLocators } from '../locators/DemoblazeCartLocators';
 import { BasePage } from '../base/BasePage';
 import { WaitHelper } from '../utils/WaitHelper';
 
@@ -7,40 +8,89 @@ import { WaitHelper } from '../utils/WaitHelper';
  * DemoblazeCartPage - Page Object Model for demoblaze.com shopping cart
  * 
  * Manages cart operations using injected locators facade.
+ * Locators are spread directly onto the instance for cleaner syntax.
+ * 
+ * TypeScript Mixin Pattern: Combines BasePage + DemoblazeCartLocators
+ * - Full IntelliSense support for all locator properties
+ * - Type-safe access to cartItems, orderModal, purchaseButton, etc.
+ * - Enterprise-grade documentation via proper typing
  */
+export interface DemoblazeCartPage extends DemoblazeCartLocators {}
 export class DemoblazeCartPage extends BasePage {
-  readonly locators: DemoblazeLocators;
-
-  // Expose order modal form fields for direct access
-  readonly orderName: Locator;
-  readonly orderCountry: Locator;
-  readonly orderCity: Locator;
-  readonly orderCreditCard: Locator;
-  readonly orderMonth: Locator;
-  readonly orderYear: Locator;
-  readonly placeOrderButton: Locator;
-  readonly purchaseButton: Locator;
-
-  constructor(page: Page) {
+  constructor(page: Page, locators: DemoblazeLocators) {
     super(page);
-    this.locators = new DemoblazeLocators(page);
-
-    // Initialize order form fields
-    this.orderName = this.locators.orderName;
-    this.orderCountry = this.locators.orderCountry;
-    this.orderCity = this.locators.orderCity;
-    this.orderCreditCard = this.locators.orderCreditCard;
-    this.orderMonth = this.locators.orderMonth;
-    this.orderYear = this.locators.orderYear;
-    this.placeOrderButton = this.locators.placeOrderButton;
-    this.purchaseButton = this.locators.purchaseButton;
+    Object.assign(this, locators.cart);
   }
+
+  // ========================================================================
+  // PRIVATE HELPERS (Internal mechanics)
+  // - Element lookup and low-level waits
+  // - Keep public methods focused on business actions
+  // ========================================================================
+
+  /**
+   * Resolve a cart item locator by product name
+   */
+  private getCartItemLocator(productName: string) {
+    return this.page.getByText(productName);
+  }
+
+  /**
+   * Wait for order modal to remain visible (validation state)
+   */
+  private async waitForOrderModalVisible(
+    timeoutMs: number = WaitHelper.SHORT_TIMEOUT_MS,
+    pollIntervalMs: number = WaitHelper.DEFAULT_POLL_INTERVAL_MS
+  ): Promise<void> {
+    await WaitHelper.waitForCondition(
+      async () => await this.isOrderModalVisible(),
+      timeoutMs,
+      pollIntervalMs
+    );
+  }
+
+  /**
+   * Wait for alert modal to appear and capture text
+   */
+  private async waitForAlertMessage(
+    timeoutMs: number = WaitHelper.SHORT_TIMEOUT_MS
+  ): Promise<string | null> {
+    try {
+      await this.alertBox.waitFor({ state: 'visible', timeout: timeoutMs });
+      return (await this.alertBox.textContent())?.trim() || null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Standardized page load wait
+   */
+  private async waitForPageLoad(
+    waitUntil: 'load' | 'domcontentloaded' | 'networkidle' = 'load'
+  ): Promise<void> {
+    await this.page.waitForLoadState(waitUntil);
+  }
+
+  /**
+   * Check if Place Order modal is visible
+   */
+  private async isOrderModalVisible(): Promise<boolean> {
+    return await this.orderModal.isVisible().catch(() => false);
+  }
+
+  // ========================================================================
+  // PUBLIC ACTIONS (Business workflows)
+  // - Use private helpers for element lookup/waits
+  // - Expose semantic operations to tests
+  // ========================================================================
 
   /**
    * Get total price displayed in cart
    */
   async getTotalPrice(): Promise<string> {
-    return (await this.getText(this.locators.totalPrice)) || '';
+    const text = await this.totalPrice.textContent();
+    return text?.trim() || '';
   }
 
   /**
@@ -48,7 +98,7 @@ export class DemoblazeCartPage extends BasePage {
    */
   async getCartItemCount(): Promise<number> {
     // Cart rows include header, so we subtract 1
-    const rows = await this.locators.cartItems.count();
+    const rows = await this.cartItems.count();
     return Math.max(0, rows - 1);
   }
 
@@ -57,17 +107,17 @@ export class DemoblazeCartPage extends BasePage {
    * @param index Index of the item to delete (0-based)
    */
   async deleteItem(index: number) {
-    const deleteButtons = this.locators.deleteButtons;
-    await this.click(deleteButtons.nth(index));
-    await this.waitForLoad();
+    const deleteButtons = this.deleteButtons;
+    await deleteButtons.nth(index).click();
+    await this.waitForPageLoad();
   }
 
   /**
    * Click 'Place Order' button
    */
   async clickPlaceOrder() {
-    await this.click(this.locators.placeOrderButton);
-    await expect(this.locators.orderModal).toBeVisible();
+    await this.placeOrderButton.click();
+    await expect(this.orderModal).toBeVisible();
   }
 
   /**
@@ -81,27 +131,28 @@ export class DemoblazeCartPage extends BasePage {
     month: string,
     year: string
   ) {
-    await this.locators.orderName.fill(name);
-    await this.locators.orderCountry.fill(country);
-    await this.locators.orderCity.fill(city);
-    await this.locators.orderCreditCard.fill(creditCard);
-    await this.locators.orderMonth.fill(month);
-    await this.locators.orderYear.fill(year);
+    await this.orderName.fill(name);
+    await this.orderCountry.fill(country);
+    await this.orderCity.fill(city);
+    await this.orderCreditCard.fill(creditCard);
+    await this.orderMonth.fill(month);
+    await this.orderYear.fill(year);
   }
 
   /**
    * Complete the purchase
    */
   async completePurchase() {
-    await this.click(this.locators.purchaseButton);
+    await this.purchaseButton.click();
   }
 
   /**
    * Get purchase success message
    */
   async getSuccessMessage(): Promise<string> {
-    await this.locators.successMessage.waitFor({ state: 'visible', timeout: 5000 });
-    return (await this.getText(this.locators.successMessage)) || '';
+    await this.successMessage.waitFor({ state: 'visible', timeout: WaitHelper.DEFAULT_TIMEOUT_MS });
+    const text = await this.successMessage.textContent();
+    return text?.trim() || '';
   }
 
   /**
@@ -118,8 +169,8 @@ export class DemoblazeCartPage extends BasePage {
    * Navigate to home page
    */
   async goToHome() {
-    await this.click(this.locators.homeLink);
-    await this.waitForLoad();
+    await this.homeLink.click();
+    await this.waitForPageLoad();
   }
 
   /**
@@ -128,8 +179,8 @@ export class DemoblazeCartPage extends BasePage {
    * @returns true if item exists in cart
    */
   async hasCartItem(productName: string): Promise<boolean> {
-    const item = this.page.getByText(productName);
-    return await this.isVisible(item);
+    const item = this.getCartItemLocator(productName);
+    return await item.isVisible().catch(() => false);
   }
 
   /**
@@ -137,15 +188,8 @@ export class DemoblazeCartPage extends BasePage {
    * @param productName The product name to verify
    */
   async verifyCartItem(productName: string) {
-    const item = this.page.getByText(productName);
-    await item.waitFor({ state: 'visible', timeout: 5000 });
-  }
-
-  /**
-   * Check if Place Order modal is visible
-   */
-  async isOrderModalVisible(): Promise<boolean> {
-    return await this.isVisible(this.locators.orderModal);
+    const item = this.getCartItemLocator(productName);
+    await item.waitFor({ state: 'visible', timeout: WaitHelper.DEFAULT_TIMEOUT_MS });
   }
 
   /**
@@ -207,12 +251,8 @@ export class DemoblazeCartPage extends BasePage {
     const initiallyVisible = await this.isOrderModalVisible();
     
     // Attempt submit
-    await this.click(this.purchaseButton);
-    await WaitHelper.waitForCondition(
-      async () => await this.isOrderModalVisible(),
-      3000,
-      100
-    );
+    await this.purchaseButton.click();
+    await this.waitForOrderModalVisible();
 
     // Check if modal still visible (validation worked)
     const stillVisible = await this.isOrderModalVisible();
@@ -228,32 +268,22 @@ export class DemoblazeCartPage extends BasePage {
     const initiallyVisible = await this.isOrderModalVisible();
 
     // Attempt submit (empty form)
-    await this.click(this.purchaseButton);
+    await this.purchaseButton.click();
 
     // Wait for on-screen alert modal (sweet-alert) to appear and capture text
-    let alertMessage: string | null = null;
-    try {
-      await this.locators.alertBox.waitFor({ state: 'visible', timeout: 3000 });
-      alertMessage = (await this.getText(this.locators.alertBox))?.trim() || null;
-    } catch {
-      // No sweet-alert appeared; leave message as null
-    }
+    const alertMessage = await this.waitForAlertMessage();
 
     // Ensure the order modal remains visible (validation should prevent closing)
-    await WaitHelper.waitForCondition(
-      async () => await this.isOrderModalVisible(),
-      3000,
-      100
-    ).catch(() => undefined);
+    await this.waitForOrderModalVisible().catch(() => undefined);
 
     const stillVisible = await this.isOrderModalVisible();
     const preventedSuccess = !(alertMessage && /thank you/i.test(alertMessage));
     const validationWorks = initiallyVisible && stillVisible && !!alertMessage && preventedSuccess;
 
     if (validationWorks) {
-      console.log('✅ Validation: Modal remains open and error message displayed');
+      this.logger.info('Validation: Modal remains open and error message displayed');
     } else {
-      console.log('❌ Validation BUG: No error alert shown or modal dismissed on empty submission');
+      this.logger.warn('Validation BUG: No error alert shown or modal dismissed on empty submission');
     }
 
     return { validationWorks, alertMessage };
@@ -265,11 +295,43 @@ export class DemoblazeCartPage extends BasePage {
    */
   async verifyFormAccessibilityAndLog(): Promise<void> {
     const labelsFound = await this.verifyFormLabelsAccessible();
-    console.log(`✅ Form Labels: ${labelsFound}/6 found`);
+    this.logger.info(`Form Labels: ${labelsFound}/6 found`);
 
     if (labelsFound === 6) {
-      console.log('✅ Place Order Modal: All form labels present (accessible)');
+      this.logger.info('Place Order Modal: All form labels present (accessible)');
     }
+  }
+
+  /**
+   * Check accessibility-first locator compliance for order form labels
+   * Logs warnings when label-based locators are missing and fallbacks may be used
+   * @returns list of missing label names
+   */
+  async checkOrderFormLabelCompliance(): Promise<string[]> {
+    const requiredLabels: { name: string; pattern: RegExp }[] = [
+      { name: 'Name', pattern: /Name/i },
+      { name: 'Country', pattern: /Country/i },
+      { name: 'City', pattern: /City/i },
+      { name: 'Credit Card', pattern: /Credit card/i },
+      { name: 'Month', pattern: /Month/i },
+      { name: 'Year', pattern: /Year/i },
+    ];
+
+    const missing: string[] = [];
+    for (const label of requiredLabels) {
+      const count = await this.page.getByLabel(label.pattern).count().catch(() => 0);
+      if (count === 0) {
+        missing.push(label.name);
+      }
+    }
+
+    if (missing.length > 0) {
+      this.logger.warn(`Accessibility-first locator warning: missing labels -> ${missing.join(', ')}`);
+    } else {
+      this.logger.info('Accessibility-first locator compliance: all labels present');
+    }
+
+    return missing;
   }
 
   /**
@@ -279,9 +341,9 @@ export class DemoblazeCartPage extends BasePage {
   async testKeyboardNavigationAndLog(): Promise<boolean> {
     const keyboardWorks = await this.testKeyboardNavigation();
     if (keyboardWorks) {
-      console.log('✅ Keyboard Navigation: Tab order works');
+      this.logger.info('Keyboard Navigation: Tab order works');
     } else {
-      console.log('⚠️  Keyboard Navigation: Tab order may not be correct');
+      this.logger.warn('Keyboard Navigation: Tab order may not be correct');
     }
     
     return keyboardWorks;
@@ -294,9 +356,9 @@ export class DemoblazeCartPage extends BasePage {
   async testErrorHandlingAndLog(): Promise<boolean> {
     const validationWorks = await this.verifyFormValidationOnEmptySubmit();
     if (validationWorks) {
-      console.log('✅ Error Handling: Modal remains open (validation works)');
+      this.logger.info('Error Handling: Modal remains open (validation works)');
     } else {
-      console.log('⚠️  Error Handling: Modal state unexpected');
+      this.logger.warn('Error Handling: Modal state unexpected');
     }
     
     return validationWorks;
