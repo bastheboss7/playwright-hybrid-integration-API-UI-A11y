@@ -6,13 +6,13 @@ This document captures the architecture excellence of the Playwright + TypeScrip
 ---
 
 ## Executive Architecture Narrative
-The framework applies **Strategic Quality Architecture** with strict **separation of concerns**, **layered testing**, and **governance-driven delivery**. The design embraces **Facade** injection to centralize dependencies, **Mixing patern** composition for locator ownership, and **fixture-based dependency inversion** to eliminate ad‑hoc construction in tests. Cross‑cutting capabilities (logging, waits, accessibility) are modeled as **infrastructure services** to enforce consistency and observability across the stack.
+The framework applies **Strategic Quality Architecture** with strict **separation of concerns**, **layered testing**, and **governance-driven delivery**. The design embraces **Facade** injection to centralize dependencies, **Mixin pattern** composition for locator ownership, and **fixture-based dependency inversion** to eliminate ad‑hoc construction in tests. Cross‑cutting capabilities (logging, waits, accessibility) are modeled as **infrastructure services** to enforce consistency and observability across the stack.
 
 ---
 
 ## Architectural Pillars (Interview Keywords)
 - **Facade Pattern:** Single DI surface for locators and test data access via a controlled façade, reducing coupling and enforcing a stable API surface.
-- **Mixing patern:** Composable locator ownership by page‑specific classes aggregated into a façade; enables modular evolution without breaking consumers.
+- **Mixin pattern:** Composable locator ownership by page‑specific classes aggregated into a façade; enables modular evolution without breaking consumers.
 - **Dependency Inversion:** Fixtures act as the IoC layer; tests depend on abstractions, not concrete instantiation.
 - **Separation of Concerns (SOC):** Test intent is isolated from UI mechanics; Page Objects encapsulate domain actions; utilities centralize infrastructure behavior.
 - **Layered Test Architecture:** API → E2E UI → Accessibility; each layer provides fast feedback and clear root cause isolation.
@@ -23,8 +23,8 @@ The framework applies **Strategic Quality Architecture** with strict **separatio
 
 ## Architectural Pillars Implemented (Design Rationale + Failure Prevention)
 
-### 1) **Facade + Mixing patern** for Selector Governance
-**Implementation:** A locator **Facade** aggregates page‑specific locator classes, while the **Mixing patern** composes them into a single surface.
+### 1) **Facade + Mixin pattern** for Selector Governance
+**Implementation:** A locator **Facade** aggregates page‑specific locator classes, while the **Mixin pattern** composes them into a single surface.
 
 ```ts
 this.home = new DemoblazeHomeLocators(page);
@@ -212,4 +212,4 @@ async verifyResponseTime(page: Page, limitMs = ApiConstants.limits.defaultRespon
 ---
 
 ## Summary
-This framework demonstrates **architectural maturity** through **Facade‑centric composition**, **Mixing patern modularity**, and **governance‑driven delivery**. The pillars above show how design decisions directly prevent failure modes while preserving scalability, observability, and compliance.
+This framework demonstrates **architectural maturity** through **Facade‑centric composition**, **Mixin pattern modularity**, and **governance‑driven delivery**. The pillars above show how design decisions directly prevent failure modes while preserving scalability, observability, and compliance.
