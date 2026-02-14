@@ -1,11 +1,10 @@
-import { Page } from '@playwright/test';
+import { Page, TestInfo } from '@playwright/test';
 import { AxeBuilder } from '@axe-core/playwright';
 import * as fs from 'fs';
 import * as path from 'path';
 
 /**
- * AccessibilityAudit - WCAG 2.1 AA Compliance Scanner
- * Non-blocking audits using AxeCore with soft assertions
+ * WCAG audit utility with non-blocking results.
  */
 export class AccessibilityAudit {
   private page: Page;
@@ -26,11 +25,42 @@ export class AccessibilityAudit {
   }
 
   async auditPage(context: string): Promise<AuditResult> {
+    return this.runAudit({ context });
+  }
+
+  async auditPageWithInclude(context: string, includeSelector: string): Promise<AuditResult> {
+    return this.runAudit({ context, includeSelector });
+  }
+
+  async attachViolations(testInfo: TestInfo, context: string, attachmentName = 'accessibility-violations'): Promise<void> {
+    const violations = this.getViolationsByContext(context);
+    if (violations.length === 0) return;
+
+    await testInfo.attach(attachmentName, {
+      body: JSON.stringify(violations, null, 2),
+      contentType: 'application/json'
+    });
+  }
+
+  async attachLocatorFallbacks(testInfo: TestInfo, missingLabels: string[], attachmentName = 'a11y-locator-fallbacks'): Promise<void> {
+    if (missingLabels.length === 0) return;
+
+    await testInfo.attach(attachmentName, {
+      body: JSON.stringify({ missingLabels }, null, 2),
+      contentType: 'application/json'
+    });
+  }
+
+  private async runAudit({ context, includeSelector }: { context: string; includeSelector?: string }): Promise<AuditResult> {
     const startTime = Date.now();
 
     try {
       const builder = new AxeBuilder({ page: this.page })
         .withTags(['wcag2aa', 'wcag21aa']);
+
+      if (includeSelector) {
+        builder.include(includeSelector);
+      }
 
       const results = await builder.analyze();
       const duration = Date.now() - startTime;
@@ -126,12 +156,6 @@ export class AccessibilityAudit {
     }
   }
 
-  /**
-   * Log accessibility audit results in consistent format
-   * Moved from BasePage to maintain SOC (AccessibilityAudit owns all a11y logic)
-   * @param results Axe audit results
-   * @param scope Descriptive scope label (e.g., 'Page', 'Form', 'Modal')
-   */
   logAuditResults(results: any, scope: string = 'Page'): void {
     const criticalCount = results.violations.filter((v: any) => v.impact === 'critical').length;
     const seriousCount = results.violations.filter((v: any) => v.impact === 'serious').length;

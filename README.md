@@ -6,10 +6,6 @@
 ![Accessibility](https://img.shields.io/badge/WCAG_2.1_AA-Compliant-brightgreen?style=for-the-badge)
 ![Efficiency](https://img.shields.io/badge/ROI-62.5%25-blue?style=for-the-badge)
 
-[![Live Test Report](https://img.shields.io/badge/📊_Live_Report-GitHub_Pages-2ea44f?style=for-the-badge&logo=github)](https://bastheboss7.github.io/playwright-hybrid-integration-API-UI-A11y/)
-
-> 👆 **[Click here to view the Live Test Report](https://bastheboss7.github.io/playwright-hybrid-integration-API-UI-A11y/)** - Updated automatically after each test run
-
 ---
 
 ## 📋 Executive Summary
@@ -35,30 +31,36 @@ This assessment demonstrates **strategic quality engineering** through a 3-pilla
 ### Installation
 
 ```bash
-# 1. Install dependencies
+# 1. Optional: create local overrides
+cp .env.example .env
+
+# 2. Install dependencies
 npm install
 
-# 2. Install Playwright browsers
+# 3. Install Playwright browsers
 npx playwright install
 
-# 3. Verify TypeScript compilation
+# 4. Verify TypeScript compilation
 npx tsc --noEmit
 ```
 
 ### Run Tests
 
 ```bash
-# Run full test suite (12 tests across 3 layers)
+# Run full test suite (13 tests across 3 layers)
 npm test
 
 # Run by strategic layer
-npx playwright test features/tests/api/          # API foundation (5 tests)
+npx playwright test features/tests/api/          # API foundation (4 tests)
 npx playwright test features/tests/e2e-ui/       # E2E workflows (6 tests)
 npx playwright test features/tests/accessibility/ # WCAG 2.1 AA audits (3 tests)
 
-# Run by CI/CD tier
-npx playwright test --grep @smoke      # PR gate (critical path, <10 mins)
-npx playwright test --grep @regression # Nightly full suite (~45 mins)
+# Run by CI/CD tier (matches workflow filters)
+npx playwright test features/tests/ --grep "@smoke|(@a11y.*(homepage|Homepage))" --project=chromium # PR gate (critical path, <10 mins)
+npx playwright test features/tests/ --grep @regression --project=chromium                           # Nightly full suite (~45 mins)
+
+# API smoke (dedicated CI job)
+npx playwright test features/tests/api/ --grep @smoke --project=api
 ```
 
 ### View Reports
@@ -78,12 +80,12 @@ cat a11y-results/a11y-audit-*.json
 ### 1. **Playwright Fixtures Pattern** (No Traditional Hooks)
 ```typescript
 // Dependency injection via fixtures (features/fixtures.ts)
-import { products } from '../../data/demoblazeTestData';
+import { testData } from '../../data/demoblazeTestData';
 
 test('checkout', async ({ demoblazeHomePage, demoblazeCartPage }) => {
   // Page objects auto-injected, no manual setup
   // Test data centralized for maintainability
-  await demoblazeHomePage.addProductToCart(products.samsungGalaxyS6);
+  await demoblazeHomePage.addProductToCart(testData.home.products.samsungGalaxyS6);
   await demoblazeCartPage.proceedToCheckout();
 });
 ```
@@ -100,17 +102,17 @@ test('checkout', async ({ demoblazeHomePage, demoblazeCartPage }) => {
 ### 2. **Centralized Test Data** (Single Source of Truth)
 ```typescript
 // All test data centralized in features/data/demoblazeTestData.ts
-import { products, categories, checkoutData } from '../../data/demoblazeTestData';
+import { testData } from '../../data/demoblazeTestData';
 
 test('checkout', async ({ demoblazeHomePage, demoblazeCartPage }) => {
-  await demoblazeHomePage.clickProduct(products.samsungGalaxyS6);
+  await demoblazeHomePage.clickProduct(testData.home.products.samsungGalaxyS6);
   await demoblazeCartPage.fillOrderForm(
-    checkoutData.validOrder.name,
-    checkoutData.validOrder.country,
-    checkoutData.validOrder.city,
-    checkoutData.validOrder.creditCard,
-    checkoutData.validOrder.month,
-    checkoutData.validOrder.year
+    testData.cart.checkoutData.validOrder.name,
+    testData.cart.checkoutData.validOrder.country,
+    testData.cart.checkoutData.validOrder.city,
+    testData.cart.checkoutData.validOrder.creditCard,
+    testData.cart.checkoutData.validOrder.month,
+    testData.cart.checkoutData.validOrder.year
   );
 });
 ```
@@ -135,10 +137,10 @@ test('@api Product Catalog Integrity', async ({ apiClient, page }) => {
 });
 
 // UI layer trusts API contract, focuses on workflows
-import { products } from '../../data/demoblazeTestData';
+import { testData } from '../../data/demoblazeTestData';
 
 test('@smoke Guest Checkout Flow', async ({ demoblazeHomePage }) => {
-  await demoblazeHomePage.addProductToCart(products.samsungGalaxyS6);
+  await demoblazeHomePage.addProductToCart(testData.home.products.samsungGalaxyS6);
   // Revenue path validated end-to-end
 });
 ```
@@ -217,7 +219,7 @@ test('@a11y Homepage Accessibility Audit', async ({ page }) => {
 
 **Tier 1: PR Gate (@smoke tests)**
 ```yaml
-Trigger:   Pull requests to main
+Trigger:   Pull requests to main + develop (shift-left)
 Duration:  ~10 minutes
 Scope:     API + Critical E2E + Homepage A11y
 Workers:   4 parallel (Chromium only)
@@ -226,13 +228,20 @@ Blocking:  ✅ Merge blocked on failure
 
 **Tier 2: Nightly Regression (@regression tests)**
 ```yaml
-Trigger:   Daily 2 AM UTC + manual dispatch
+Trigger:   Daily 2 AM UTC + manual dispatch (scope + browser selection)
 Duration:  ~45 minutes
-Scope:     Full suite (12 tests × 3 browsers)
+Scope:     Full suite (13 tests × 3 browsers)
 Workers:   2 per browser (stability over speed)
 Browsers:  Chromium, Firefox, WebKit
 Blocking:  ❌ Informational only (audit trail)
 ```
+
+**Additional Workflow Behavior**
+- **Push to main:** smoke verification on Chromium
+- **Dedicated API job:** runs `@smoke` against the `api` project
+- **Accessibility audit:** runs on PRs, nightly, and manual regression/all; non-blocking with artifacts
+- **Artifacts + checks:** HTML/JSON/JUnit reports uploaded; JUnit published to PR checks
+- **Concurrency:** cancels in-progress runs except scheduled nightly
 
 **ROI Impact:**
 - **Before:** 40-min manual regression × 5 cycles/week = **3.3 hrs/week**
@@ -384,28 +393,31 @@ await page.locator('#name-input').fill('John Doe');
 ## 📁 Project Structure
 
 ```
-Playwright/
+playwright-hybrid-integration-API-UI-A11y/
+├── .env.example                 # Environment overrides template
+├── .github/
+│   └── workflows/
+│       └── test-automation.yml  # 2-tier CI/CD pipeline
 ├── features/
 │   ├── base/                    # Infrastructure (BasePage)
 │   ├── clients/                 # API layer (BaseApiClient, DemoblazeApiClient)
+│   ├── data/                    # Test data + facade
+│   ├── locators/                # Page-specific locators + facade
 │   ├── pages/                   # Page Objects (Home, Product, Cart)
-│   ├── locators/                # Centralized selectors
-│   ├── utils/                   # Cross-cutting (AccessibilityAudit, WaitHelper)
-│   ├── data/                    # Test data
 │   ├── tests/
 │   │   ├── api/                 # Layer 1: API contract tests
 │   │   ├── e2e-ui/              # Layer 2: E2E workflows
 │   │   └── accessibility/       # Layer 3: WCAG 2.1 AA audits
+│   ├── utils/                   # Cross-cutting (AccessibilityAudit, WaitHelper)
 │   └── fixtures.ts              # Dependency injection container
 ├── governance/
 │   ├── ROI_MODEL.md             # 62.5% efficiency calculation
 │   ├── STANDARDS.md             # Technical quality gates
 │   └── QUALITY_GATES.md         # Three Amigos + Gate 5
-├── .github/
-│   └── workflows/
-│       └── test-automation.yml  # 2-tier CI/CD pipeline
 ├── TESTSTRATEGY.md              # Strategic test plan (Req 1-3)
-├── playwright.config.ts         # Configuration
+├── package.json                 # Scripts + dependencies
+├── playwright.config.ts         # Playwright configuration
+├── tsconfig.json                # TypeScript config
 └── README.md                    # This file
 
 ```
@@ -414,18 +426,18 @@ Playwright/
 
 ## 📊 Test Coverage Summary
 
-### 5 Strategic Scenarios = 12 Tests
+### 5 Strategic Scenarios = 13 Tests
 
 | Scenario | File | Tests | Risk | Layer |
 |----------|------|-------|------|-------|
-| **1. Hybrid Integrity** | [api/api-product-catalog.spec.ts](features/tests/api/api-product-catalog.spec.ts) | 5 | 🔴 Critical (8/10) | API |
+| **1. Hybrid Integrity** | [api/api-product-catalog.spec.ts](features/tests/api/api-product-catalog.spec.ts) | 4 | 🔴 Critical (8/10) | API |
 | **2. Asynchronous Navigation** | [e2e-ui/e2e-navigation.spec.ts](features/tests/e2e-ui/e2e-navigation.spec.ts) | 4 | 🟡 Medium (3/10) | E2E-UI |
 | **3. Revenue Path Checkout** | [e2e-ui/e2e-guest-checkout.spec.ts](features/tests/e2e-ui/e2e-guest-checkout.spec.ts) | 2 | 🔴 Critical (9/10) | E2E-UI |
 | **4. State Persistence** | [e2e-ui/e2e-navigation.spec.ts](features/tests/e2e-ui/e2e-navigation.spec.ts) | Included | 🟡 High (6/10) | E2E-UI |
 | **5. Accessibility Audit** | [accessibility/a11y-form-validation.spec.ts](features/tests/accessibility/a11y-form-validation.spec.ts) | 3 | 🔴 High (5/10) | A11y |
 
-**Total:** 12 tests across 3 layers  
-**Execution Time:** API (2s) + E2E-UI (35s) + A11y (15s) = **~52s**  
+**Total:** 13 tests across 3 layers  
+**Execution Time:** ~60s (API + E2E-UI + A11y)  
 **CI/CD Time:** ~10 mins (@smoke tier with parallel workers)
 
 **Reference:** [TESTSTRATEGY.md - Test Selection](TESTSTRATEGY.md#2-test-selection--rationale-value-based)
