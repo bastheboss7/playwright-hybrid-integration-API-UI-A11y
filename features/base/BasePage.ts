@@ -1,6 +1,8 @@
 import { Page, Locator } from '@playwright/test';
 import { TestLogger } from '../utils/TestLogger';
 import { WaitHelper } from '../utils/WaitHelper';
+import * as fs from 'fs';
+import * as path from 'path';
 
 /**
  * Base page utilities with resilient actions and shared logging.
@@ -8,6 +10,8 @@ import { WaitHelper } from '../utils/WaitHelper';
 export abstract class BasePage {
   private static readonly DEFAULT_RETRIES = 3;
   private static readonly SCREENSHOT_DIR = 'screenshots';
+  private static readonly MAX_FILENAME_LENGTH = 200;
+  private static screenshotDirCreated = false;
 
   readonly page: Page;
   protected logger: TestLogger;
@@ -15,6 +19,53 @@ export abstract class BasePage {
   protected constructor(page: Page) {
     this.page = page;
     this.logger = new TestLogger(this.constructor.name);
+    this.ensureScreenshotDirectory();
+  }
+
+  private ensureScreenshotDirectory(): void {
+    // Use static flag for efficiency - mkdirSync with recursive:true is idempotent
+    if (!BasePage.screenshotDirCreated) {
+      fs.mkdirSync(BasePage.SCREENSHOT_DIR, { recursive: true });
+      BasePage.screenshotDirCreated = true;
+    }
+  }
+
+  /**
+   * Sanitize filename to prevent path traversal and ensure filesystem safety
+   * - Removes path separators and parent directory references
+   * - Replaces unsafe characters with underscores
+   * - Truncates to reasonable length
+   */
+  private sanitizeFilename(name: string): string {
+    // Remove leading path separators to prevent absolute paths
+    let sanitized = name.replace(/^[\/\\]+/, '');
+    
+    // Remove parent directory sequences and path separators
+    sanitized = sanitized.replace(/\.\./g, '_').replace(/[\/\\]/g, '_');
+    
+    // Replace unsafe filesystem characters (defensive: includes backslash even though handled above)
+    sanitized = sanitized.replace(/[<>:"\\|?*\x00-\x1f]/g, '_');
+    
+    // Replace whitespace with underscores
+    sanitized = sanitized.replace(/\s+/g, '_');
+    
+    // Collapse multiple underscores
+    sanitized = sanitized.replace(/_+/g, '_');
+    
+    // Trim underscores from start/end
+    sanitized = sanitized.replace(/^_+|_+$/g, '');
+    
+    // Ensure non-empty result
+    if (sanitized.length === 0) {
+      sanitized = 'screenshot';
+    }
+    
+    // Truncate to reasonable length (200 chars allows room for .png extension within 255-char filesystem limits)
+    if (sanitized.length > BasePage.MAX_FILENAME_LENGTH) {
+      sanitized = sanitized.substring(0, BasePage.MAX_FILENAME_LENGTH);
+    }
+    
+    return sanitized;
   }
 
   // =========================================================================
@@ -67,16 +118,20 @@ export abstract class BasePage {
   
   async screenshot(name: string, options?: { fullPage?: boolean }): Promise<Buffer> {
     const fullPage = options?.fullPage || false;
-    this.logger.info(`Taking screenshot: ${name}`);
+    const safeName = this.sanitizeFilename(name);
+    this.logger.info(`Taking screenshot: ${safeName}`);
     return await this.page.screenshot({ 
-      path: `${BasePage.SCREENSHOT_DIR}/${name}.png`, 
+      path: path.join(BasePage.SCREENSHOT_DIR, `${safeName}.png`), 
       fullPage 
     });
   }
 
   async screenshotElement(locator: Locator, name: string): Promise<Buffer> {
-    this.logger.info(`Taking element screenshot: ${name}`);
-    return await locator.screenshot({ path: `${BasePage.SCREENSHOT_DIR}/${name}.png` });
+    const safeName = this.sanitizeFilename(name);
+    this.logger.info(`Taking element screenshot: ${safeName}`);
+    return await locator.screenshot({ 
+      path: path.join(BasePage.SCREENSHOT_DIR, `${safeName}.png`) 
+    });
   }
 
   // =========================================================================
