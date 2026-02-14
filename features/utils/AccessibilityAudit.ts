@@ -4,8 +4,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 /**
- * AccessibilityAudit - WCAG 2.1 AA Compliance Scanner
- * Non-blocking audits using AxeCore with soft assertions
+ * WCAG audit utility with non-blocking results.
  */
 export class AccessibilityAudit {
   private page: Page;
@@ -29,16 +28,10 @@ export class AccessibilityAudit {
     return this.runAudit({ context });
   }
 
-  /**
-   * Run accessibility audit with a scoped include selector
-   */
   async auditPageWithInclude(context: string, includeSelector: string): Promise<AuditResult> {
     return this.runAudit({ context, includeSelector });
   }
 
-  /**
-   * Attach violations for a given context to the test report
-   */
   async attachViolations(testInfo: TestInfo, context: string, attachmentName = 'accessibility-violations'): Promise<void> {
     const violations = this.getViolationsByContext(context);
     if (violations.length === 0) return;
@@ -49,9 +42,6 @@ export class AccessibilityAudit {
     });
   }
 
-  /**
-   * Attach locator fallback diagnostics for accessibility-first compliance
-   */
   async attachLocatorFallbacks(testInfo: TestInfo, missingLabels: string[], attachmentName = 'a11y-locator-fallbacks'): Promise<void> {
     if (missingLabels.length === 0) return;
 
@@ -166,12 +156,6 @@ export class AccessibilityAudit {
     }
   }
 
-  /**
-   * Log accessibility audit results in consistent format
-   * Moved from BasePage to maintain SOC (AccessibilityAudit owns all a11y logic)
-   * @param results Axe audit results
-   * @param scope Descriptive scope label (e.g., 'Page', 'Form', 'Modal')
-   */
   logAuditResults(results: any, scope: string = 'Page'): void {
     const criticalCount = results.violations.filter((v: any) => v.impact === 'critical').length;
     const seriousCount = results.violations.filter((v: any) => v.impact === 'serious').length;

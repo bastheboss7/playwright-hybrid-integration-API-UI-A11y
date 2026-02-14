@@ -7,7 +7,7 @@ export class WaitHelper {
   static readonly RETRY_DELAY_MS = 500;
 
   /**
-   * Polls a condition until it returns true or times out.
+   * Poll a condition until it succeeds or times out.
    */
   static async waitForCondition(
     condition: () => Promise<boolean>,
@@ -23,7 +23,7 @@ export class WaitHelper {
   }
 
   /**
-   * Retries an async operation up to maxRetries times.
+   * Retry an async operation up to maxRetries times.
    */
   static async retryOperation<T>(
     operation: () => Promise<T>,

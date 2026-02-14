@@ -2,11 +2,7 @@ import { Page, APIResponse, expect } from '@playwright/test';
 import { ApiConstants } from './ApiConstants';
 
 /**
- * BaseApiClient - Generic API infrastructure layer
- * 
- * Provides reusable HTTP operations and common assertions for API testing.
- * Infrastructure-level class - no business logic.
- * Extended by domain-specific API clients (e.g., DemoblazeApiClient).
+ * Shared API client utilities for HTTP operations and assertions.
  */
 export class BaseApiClient {
   constructor(public baseUrl: string) {}

@@ -3,11 +3,7 @@ import { BaseApiClient } from './BaseApiClient';
 import { ApiConstants } from './ApiConstants';
 
 /**
- * DemoblazeApiClient - Business-specific API validation for demoblaze.com
- * 
- * Extends BaseApiClient to inherit generic HTTP operations
- * Adds domain-specific validation methods
- * Maintains SOC: BaseApiClient = infrastructure, DemoblazeApiClient = business domain
+ * Domain-specific API validations for demoblaze.com.
  */
 export class DemoblazeApiClient extends BaseApiClient {
   private static readonly DEFAULT_RESPONSE_TIME_LIMIT_MS = ApiConstants.limits.defaultResponseTimeMs;

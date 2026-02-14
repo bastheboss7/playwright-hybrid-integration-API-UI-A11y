@@ -1,10 +1,7 @@
 import { Page, Locator } from '@playwright/test';
 
 /**
- * DemoblazeHomeLocators - Home/Listings Page Locators
- * 
- * Scope: Home page interactions (navigation, listings, login/contact modals)
- * Accessibility-first: role/label based locators where possible.
+ * Home and listing page locators.
  */
 export class DemoblazeHomeLocators {
   readonly page: Page;

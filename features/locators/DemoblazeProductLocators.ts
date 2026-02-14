@@ -1,7 +1,7 @@
 import { Page, Locator } from '@playwright/test';
 
 /**
- * DemoblazeProductLocators - Product Detail Page Locators
+ * Product detail page locators.
  */
 export class DemoblazeProductLocators {
   readonly page: Page;

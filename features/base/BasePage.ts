@@ -3,30 +3,16 @@ import { TestLogger } from '../utils/TestLogger';
 import { WaitHelper } from '../utils/WaitHelper';
 
 /**
- * BasePage - Lean base class for page objects
- * 
- * PHILOSOPHY: Only include methods that add value beyond Playwright's API
- * - Custom business logic (safeClick with retry)
- * - Convenience combinations (clickAndWait)
- * - Framework integration (logging, screenshots with path management)
- * 
- * REMOVED: Zero-value wrappers (use Playwright directly)
- * - fill, type, clear, check, uncheck → use locator.fill(), locator.check()
- * - getText, isVisible, isEnabled → use locator.textContent(), locator.isVisible()
- * - verifyVisible, verifyText → use expect(locator).toBeVisible()
- * - scrollToElement → use locator.scrollIntoViewIfNeeded()
- * - waitForCondition → use WaitHelper.waitForCondition()
- * 
- * WHY: Playwright's API is already excellent - don't reinvent it
+ * Base page utilities with resilient actions and shared logging.
  */
-export class BasePage {
+export abstract class BasePage {
   private static readonly DEFAULT_RETRIES = 3;
   private static readonly SCREENSHOT_DIR = 'screenshots';
 
   readonly page: Page;
   protected logger: TestLogger;
 
-  constructor(page: Page) {
+  protected constructor(page: Page) {
     this.page = page;
     this.logger = new TestLogger(this.constructor.name);
   }
@@ -45,8 +31,7 @@ export class BasePage {
   // =========================================================================
   
   /**
-   * Click with retry logic and error handling
-   * Use when element interactions are flaky or timing-sensitive
+   * Click with retry logic for timing-sensitive interactions.
    */
   async safeClick(locator: Locator, options?: { retries?: number, force?: boolean }): Promise<void> {
     const retries = options?.retries || BasePage.DEFAULT_RETRIES;
@@ -69,8 +54,7 @@ export class BasePage {
   }
 
   /**
-   * Click and wait for navigation/load state
-   * Convenience method for common pattern
+   * Click and wait for a load state.
    */
   async clickAndWait(locator: Locator, waitFor: 'load' | 'domcontentloaded' | 'networkidle' = 'domcontentloaded'): Promise<void> {
     await locator.click();
